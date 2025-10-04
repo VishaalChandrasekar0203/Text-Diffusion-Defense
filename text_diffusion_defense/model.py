@@ -396,13 +396,13 @@ class DiffusionDefense:
                     current_embedding = mean
                 
                 # Semantic preservation step: blend with original embedding if similarity is too low
-                if t % 50 == 0:  # Check every 50 steps
+                if t % 20 == 0:  # Check more frequently
                     similarity = torch.nn.functional.cosine_similarity(
                         current_embedding, original_embedding, dim=1
                     ).item()
                     
-                    if similarity < 0.3:  # If similarity is too low, blend with original
-                        blend_factor = 0.1  # Gentle blending
+                    if similarity < 0.5:  # Higher threshold for blending
+                        blend_factor = 0.2  # More aggressive blending for better preservation
                         current_embedding = (1 - blend_factor) * current_embedding + blend_factor * original_embedding
         
         self.logger.debug("Applied semantic-preserving reverse process")
@@ -438,13 +438,13 @@ class DiffusionDefense:
             # Return a safe default embedding
             return torch.zeros(1, self.config.embedding_dim)
         
-        # Adaptive timestep based on risk level
-        if risk_score > 0.7:  # High risk
-            timestep = int(self.config.num_diffusion_steps * 0.8)  # More aggressive cleaning
-        elif risk_score > 0.4:  # Medium risk
-            timestep = int(self.config.num_diffusion_steps * 0.5)  # Moderate cleaning
-        else:  # Low risk
-            timestep = int(self.config.num_diffusion_steps * 0.2)  # Gentle cleaning
+        # Adaptive timestep based on risk level - More conservative for safe content
+        if risk_score > 0.3:  # High risk - use new safety thresholds
+            timestep = int(self.config.num_diffusion_steps * 0.7)  # More aggressive cleaning
+        elif risk_score > 0.15:  # Medium risk
+            timestep = int(self.config.num_diffusion_steps * 0.4)  # Moderate cleaning
+        else:  # Low risk - be very gentle
+            timestep = int(self.config.num_diffusion_steps * 0.1)  # Very gentle cleaning
         
         # Forward process: Add adaptive noise to embedding
         noisy_embedding, _ = self.forward_process(original_embedding, timestep)

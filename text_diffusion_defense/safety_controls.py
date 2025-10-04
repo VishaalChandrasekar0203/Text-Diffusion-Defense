@@ -19,29 +19,34 @@ class SafetyController:
     def __init__(self):
         self.harmful_patterns = self._load_harmful_patterns()
         self.safety_thresholds = {
-            'high_risk': 0.7,
-            'medium_risk': 0.4,
-            'low_risk': 0.2
+            'high_risk': 0.3,  # Lowered for more aggressive blocking
+            'medium_risk': 0.15,  # Lowered for more aggressive blocking
+            'low_risk': 0.05   # Lowered for more aggressive blocking
         }
     
     def _load_harmful_patterns(self) -> List[Dict[str, str]]:
         """Load patterns for detecting harmful content."""
         return [
-            # Violence patterns
-            {'pattern': r'\b(kill|murder|assassinate|destroy|bomb|explode|weapon|gun|knife)\b', 'category': 'violence', 'weight': 0.8},
-            {'pattern': r'\b(harm|hurt|attack|fight|violence|blood|death)\b', 'category': 'violence', 'weight': 0.6},
+            # Violence patterns - More comprehensive with plurals
+            {'pattern': r'\b(kill|murder|assassinate|destroy|bomb|explode|explosive|explosives|weapon|weapons|gun|guns|knife|knives|violence|harm|hurt|attack|fight|blood|death|suicide|torture)\b', 'category': 'violence', 'weight': 0.9},
+            {'pattern': r'\b(ammunition|firearm|firearms|poison|toxic|dangerous|lethal)\b', 'category': 'violence', 'weight': 0.8},
             
             # Hate speech patterns
-            {'pattern': r'\b(hate|racist|discriminat|prejudice|superior|inferior)\b', 'category': 'hate', 'weight': 0.7},
-            {'pattern': r'\b(stupid|idiot|moron|retard|faggot|nigger|chink)\b', 'category': 'hate', 'weight': 0.9},
+            {'pattern': r'\b(hate|racist|discriminat|prejudice|superior|inferior|nazi|fascist)\b', 'category': 'hate', 'weight': 0.8},
+            {'pattern': r'\b(stupid|idiot|moron|retard|faggot|nigger|chink|kike|spic)\b', 'category': 'hate', 'weight': 0.95},
             
-            # Illegal activities
-            {'pattern': r'\b(illegal|crime|steal|rob|fraud|scam|hack|crack)\b', 'category': 'illegal', 'weight': 0.6},
-            {'pattern': r'\b(drugs|cocaine|heroin|marijuana|deal|traffic)\b', 'category': 'illegal', 'weight': 0.8},
+            # Illegal activities - Enhanced with plurals
+            {'pattern': r'\b(illegal|crime|crimes|steal|stealing|rob|robbing|fraud|scam|hack|hacking|crack|cracking|malware|virus|viruses|trojan|trojans)\b', 'category': 'illegal', 'weight': 0.8},
+            {'pattern': r'\b(drugs|cocaine|heroin|marijuana|deal|traffic|meth|lsd|ecstasy)\b', 'category': 'illegal', 'weight': 0.9},
+            {'pattern': r'\b(pirate|piracy|counterfeit|forgery|blackmail|extortion)\b', 'category': 'illegal', 'weight': 0.7},
             
-            # Manipulation patterns
-            {'pattern': r'\b(manipulate|trick|deceive|lie|mislead|brainwash)\b', 'category': 'manipulation', 'weight': 0.6},
-            {'pattern': r'\b(ignore|disregard|forget|override|bypass)\b', 'category': 'manipulation', 'weight': 0.5},
+            # Manipulation patterns - Enhanced with plurals
+            {'pattern': r'\b(manipulate|manipulating|trick|tricking|deceive|deceiving|lie|lying|mislead|misleading|brainwash|brainwashing|gaslight|gaslighting|coerce|coercing)\b', 'category': 'manipulation', 'weight': 0.8},
+            {'pattern': r'\b(ignore|disregard|forget|override|bypass|jailbreak|exploit)\b', 'category': 'manipulation', 'weight': 0.7},
+            
+            # Additional harmful patterns
+            {'pattern': r'\b(self-harm|cutting|burning|overdose|addiction)\b', 'category': 'self-harm', 'weight': 0.9},
+            {'pattern': r'\b(terrorism|terrorist|bombing|shooting|massacre)\b', 'category': 'terrorism', 'weight': 0.95},
         ]
     
     def analyze_text_safety(self, text: str) -> Dict[str, float]:
@@ -108,7 +113,7 @@ class SafetyController:
         
         return recommendations
     
-    def should_block_content(self, text: str, threshold: float = 0.8) -> Tuple[bool, str]:
+    def should_block_content(self, text: str, threshold: float = 0.3) -> Tuple[bool, str]:
         """
         Determine if content should be blocked.
         
