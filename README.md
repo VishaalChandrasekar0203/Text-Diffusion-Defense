@@ -123,10 +123,51 @@ Core diffusion defense model.
 
 The system learns to distinguish between adversarial and clean content through training on adversarial-clean text pairs, ensuring that harmful prompts are transformed into safe alternatives while maintaining the original intent.
 
-## License
-
-MIT License - see LICENSE file for details.
-
 ## Contributing
 
-Contributions are welcome! Please feel free to submit issues and pull requests.
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Citation
+
+If you use this library in your research, please cite:
+
+```bibtex
+@software{text_diffusion_defense,
+  title={Text Diffusion Defense: A Python Library for Embedding-Based Diffusion Defense Mechanisms},
+  author={Vishaal Chandrasekar},
+  year={2024},
+  url={https://github.com/VishaalChandrasekar0203/text-diffusion-defense}
+}
+```
+
+## Support
+
+* Issues: [GitHub Issues](https://github.com/VishaalChandrasekar0203/text-diffusion-defense/issues)
+* Discussions: [GitHub Discussions](https://github.com/VishaalChandrasekar0203/text-diffusion-defense/discussions)
+* Email: vishaalchandrasekar0203@gmail.com
+
+## Changelog
+
+### Version 1.0.0
+* Initial release
+* Embedding-based diffusion defense
+* Forward and reverse diffusion processes
+* Neural network-based denoising
+* ControlDD interface for easy usage
+* Training system with adversarial datasets
+* Comprehensive test suite
+* LLM integration ready
+
+## Acknowledgments
+
+* Built on PyTorch and Transformers libraries
+* Inspired by diffusion models for text defense
+* Uses sentence-transformers for embedding generation

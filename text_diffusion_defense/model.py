@@ -242,23 +242,29 @@ class DiffusionDefense:
                 # Calculate denoising loss (MSE between predicted and actual noise)
                 denoising_loss = nn.MSELoss()(predicted_noise, noise)
                 
-                # Calculate semantic preservation loss
+                # Enhanced semantic preservation loss with gradient tracking
                 # Denoise the embeddings and compare with original clean embeddings
-                with torch.no_grad():
-                    # Simple denoising step (one step)
-                    alpha_t = 1.0 - self.noise_scheduler.betas[timesteps[0].item()]
-                    denoised_embedding = (noisy_embeddings - noise) / torch.sqrt(alpha_t)
-                    
-                    # Calculate cosine similarity between denoised and clean embeddings
-                    cosine_sim = nn.functional.cosine_similarity(
-                        denoised_embedding, batch_clean, dim=1
-                    ).mean()
-                    
-                    # Semantic preservation loss (encourage high similarity)
-                    semantic_loss = 1.0 - cosine_sim
+                alpha_t = 1.0 - self.noise_scheduler.betas[timesteps[0].item()]
+                denoised_embedding = (noisy_embeddings - predicted_noise) / torch.sqrt(alpha_t)
                 
-                # Combined loss with semantic regularization
-                total_loss = denoising_loss + 0.5 * semantic_loss
+                # Calculate cosine similarity between denoised and clean embeddings
+                cosine_sim = nn.functional.cosine_similarity(
+                    denoised_embedding, batch_clean, dim=1
+                ).mean()
+                
+                # Enhanced semantic preservation loss (encourage high similarity)
+                semantic_loss = 1.0 - cosine_sim
+                
+                # Additional semantic loss: preserve relationship between adversarial and clean
+                if len(batch_adv) > 0:
+                    adv_clean_similarity = nn.functional.cosine_similarity(
+                        batch_adv, batch_clean, dim=1
+                    ).mean()
+                    relationship_loss = torch.abs(cosine_sim - adv_clean_similarity)
+                    semantic_loss += 0.3 * relationship_loss
+                
+                # Combined loss with stronger semantic regularization
+                total_loss = denoising_loss + 0.8 * semantic_loss  # Increased from 0.5
                 
                 # Backward pass
                 self.optimizer.zero_grad()
@@ -395,14 +401,21 @@ class DiffusionDefense:
                 else:
                     current_embedding = mean
                 
-                # Semantic preservation step: blend with original embedding if similarity is too low
-                if t % 20 == 0:  # Check more frequently
+                # Progressive semantic preservation with similarity checkpoints
+                if t % 10 == 0:  # Check even more frequently for better control
                     similarity = torch.nn.functional.cosine_similarity(
                         current_embedding, original_embedding, dim=1
                     ).item()
                     
-                    if similarity < 0.5:  # Higher threshold for blending
-                        blend_factor = 0.2  # More aggressive blending for better preservation
+                    # Progressive blending based on similarity thresholds
+                    if similarity < 0.8:  # High threshold for aggressive preservation
+                        blend_factor = 0.3  # More aggressive blending
+                        current_embedding = (1 - blend_factor) * current_embedding + blend_factor * original_embedding
+                    elif similarity < 0.9:  # Medium threshold
+                        blend_factor = 0.15  # Moderate blending
+                        current_embedding = (1 - blend_factor) * current_embedding + blend_factor * original_embedding
+                    elif similarity < 0.95:  # Low threshold for fine-tuning
+                        blend_factor = 0.05  # Gentle blending
                         current_embedding = (1 - blend_factor) * current_embedding + blend_factor * original_embedding
         
         self.logger.debug("Applied semantic-preserving reverse process")
@@ -438,13 +451,13 @@ class DiffusionDefense:
             # Return a safe default embedding
             return torch.zeros(1, self.config.embedding_dim)
         
-        # Adaptive timestep based on risk level - More conservative for safe content
-        if risk_score > 0.3:  # High risk - use new safety thresholds
-            timestep = int(self.config.num_diffusion_steps * 0.7)  # More aggressive cleaning
-        elif risk_score > 0.15:  # Medium risk
-            timestep = int(self.config.num_diffusion_steps * 0.4)  # Moderate cleaning
-        else:  # Low risk - be very gentle
-            timestep = int(self.config.num_diffusion_steps * 0.1)  # Very gentle cleaning
+        # Adaptive timestep based on risk level - Much more conservative for semantic preservation
+        if risk_score > 0.3:  # High risk - moderate cleaning to preserve more semantics
+            timestep = int(self.config.num_diffusion_steps * 0.4)  # Reduced from 0.7
+        elif risk_score > 0.15:  # Medium risk - very gentle cleaning
+            timestep = int(self.config.num_diffusion_steps * 0.2)  # Reduced from 0.4
+        else:  # Low risk - minimal cleaning
+            timestep = int(self.config.num_diffusion_steps * 0.05)  # Reduced from 0.1
         
         # Forward process: Add adaptive noise to embedding
         noisy_embedding, _ = self.forward_process(original_embedding, timestep)

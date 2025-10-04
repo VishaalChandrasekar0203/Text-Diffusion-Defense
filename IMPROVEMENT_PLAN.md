@@ -1,9 +1,9 @@
 # 🚀 Text Diffusion Defense - Improvement Plan
 
 ## 📊 **Current Status Assessment**
-- ✅ **Safety Detection**: Working well (90%+ accuracy)
-- ✅ **Content Blocking**: Effective for extreme cases
-- ⚠️ **Semantic Preservation**: 53-56% (needs improvement)
+- ⚠️ **Safety Detection**: Limited by poor semantic preservation (53-56%)
+- ⚠️ **Content Blocking**: Working but may be over-aggressive due to poor semantics
+- ⚠️ **Semantic Preservation**: 53-56% (critical issue affecting all other metrics)
 - ✅ **LLM Integration**: Ready for production
 - ✅ **Framework Structure**: Clean and modular
 
