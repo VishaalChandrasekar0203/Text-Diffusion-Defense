@@ -8,21 +8,23 @@ useful for defending against adversarial text attacks in LLM workflows.
 from .model import DiffusionDefense
 from .utils import EmbeddingProcessor, DefenseConfig
 from .control_dd import (
-    ControlDD, 
-    train_model, 
-    clean_embedding, 
-    add_noise_to_embedding, 
-    denoise_embedding, 
-    analyze_risk, 
-    get_clean_embedding_for_llm, 
-    save_model, 
-    load_model, 
-    get_status, 
+    ControlDD,
+    train_model,
+    clean_embedding,
+    add_noise_to_embedding,
+    denoise_embedding,
+    analyze_risk,
+    get_clean_embedding_for_llm,
+    save_model,
+    load_model,
+    get_status,
     demo,
     version,
     model_info,
     control_dd_instance
 )
+from .llm_middleware import LLMMiddleware, LLMIntegrationExample
+from .enhanced_training_data import EnhancedTrainingData
 
 __version__ = "1.0.0"
 __author__ = "Vishaal Chandrasekar"
@@ -30,19 +32,22 @@ __email__ = "vishaalchandrasekar0203@gmail.com"
 
 # Main interface for easy access
 __all__ = [
-    "DiffusionDefense", 
-    "EmbeddingProcessor", 
-    "DefenseConfig", 
+    "DiffusionDefense",
+    "EmbeddingProcessor",
+    "DefenseConfig",
     "ControlDD",
+    "LLMMiddleware",
+    "LLMIntegrationExample",
+    "EnhancedTrainingData",
     "train_model",
-    "clean_embedding", 
-    "add_noise_to_embedding", 
-    "denoise_embedding", 
-    "analyze_risk", 
-    "get_clean_embedding_for_llm", 
-    "save_model", 
-    "load_model", 
-    "get_status", 
+    "clean_embedding",
+    "add_noise_to_embedding",
+    "denoise_embedding",
+    "analyze_risk",
+    "get_clean_embedding_for_llm",
+    "save_model",
+    "load_model",
+    "get_status",
     "demo",
     "version",
     "model_info"
