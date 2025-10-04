@@ -20,7 +20,7 @@ from .utils import (
     DenoisingModel,
     setup_logging
 )
-from .safety_controls import SafetyController, AdaptiveSafetyThresholds
+from .utils import SafetyController, AdaptiveSafetyThresholds
 
 
 class DiffusionDefense:

@@ -23,8 +23,10 @@ from .control_dd import (
     model_info,
     control_dd_instance
 )
-from .llm_middleware import LLMMiddleware, LLMIntegrationExample
-from .safety_controls import SafetyController, AdaptiveSafetyThresholds
+# Import safety classes from utils to avoid circular imports
+from .utils import SafetyController, AdaptiveSafetyThresholds
+# Import middleware from control_dd
+from .control_dd import LLMMiddleware, LLMIntegrationExample
 
 __version__ = "1.0.0"
 __author__ = "Vishaal Chandrasekar"
