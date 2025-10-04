@@ -20,6 +20,7 @@ from .utils import (
     DenoisingModel,
     setup_logging
 )
+from .safety_controls import SafetyController, AdaptiveSafetyThresholds
 
 
 class DiffusionDefense:
@@ -65,6 +66,10 @@ class DiffusionDefense:
             lr=self.config.learning_rate
         )
         self.is_trained = False
+        
+        # Initialize safety controls
+        self.safety_controller = SafetyController()
+        self.adaptive_thresholds = AdaptiveSafetyThresholds()
         
         self.logger.info(f"DiffusionDefense model initialized on {self.config.device}")
     
@@ -170,20 +175,24 @@ class DiffusionDefense:
     
     def train(self, adversarial_texts: Optional[List[str]] = None, clean_texts: Optional[List[str]] = None):
         """
-        Train the diffusion defense model.
+        Train the diffusion defense model with semantic regularization.
         
         Args:
             adversarial_texts: List of adversarial text samples. If None, loads from Hugging Face dataset.
             clean_texts: List of clean text samples. If None, loads from Hugging Face dataset.
         """
-        self.logger.info("Starting diffusion defense training...")
+        self.logger.info("Starting diffusion defense training with semantic regularization...")
         start_time = time.time()
         
         # Get training data from Hugging Face dataset
         if adversarial_texts is None or clean_texts is None:
             adversarial_texts, clean_texts = self.load_huggingface_dataset()
         
-        self.logger.info(f"Training on {len(adversarial_texts)} text pairs")
+        # Enhance training data with safety controls
+        self.logger.info("Enhancing training data with safety controls...")
+        adversarial_texts, clean_texts = self.safety_controller.enhance_safety_training_data(adversarial_texts, clean_texts)
+        
+        self.logger.info(f"Training on {len(adversarial_texts)} safety-enhanced text pairs")
         
         # Convert texts to embeddings
         adversarial_embeddings = []
@@ -230,15 +239,33 @@ class DiffusionDefense:
                 # Predict noise
                 predicted_noise = self.denoising_model(noisy_embeddings, timesteps[0].item())
                 
-                # Calculate loss (MSE between predicted and actual noise)
-                loss = nn.MSELoss()(predicted_noise, noise)
+                # Calculate denoising loss (MSE between predicted and actual noise)
+                denoising_loss = nn.MSELoss()(predicted_noise, noise)
+                
+                # Calculate semantic preservation loss
+                # Denoise the embeddings and compare with original clean embeddings
+                with torch.no_grad():
+                    # Simple denoising step (one step)
+                    alpha_t = 1.0 - self.noise_scheduler.betas[timesteps[0].item()]
+                    denoised_embedding = (noisy_embeddings - noise) / torch.sqrt(alpha_t)
+                    
+                    # Calculate cosine similarity between denoised and clean embeddings
+                    cosine_sim = nn.functional.cosine_similarity(
+                        denoised_embedding, batch_clean, dim=1
+                    ).mean()
+                    
+                    # Semantic preservation loss (encourage high similarity)
+                    semantic_loss = 1.0 - cosine_sim
+                
+                # Combined loss with semantic regularization
+                total_loss = denoising_loss + 0.5 * semantic_loss
                 
                 # Backward pass
                 self.optimizer.zero_grad()
-                loss.backward()
+                total_loss.backward()
                 self.optimizer.step()
                 
-                epoch_loss += loss.item()
+                epoch_loss += total_loss.item()
                 num_batches += 1
             
             if num_batches > 0:
@@ -250,28 +277,41 @@ class DiffusionDefense:
         training_time = time.time() - start_time
         self.logger.info(f"Training completed in {training_time:.2f} seconds")
     
-    def forward_process(self, text: str) -> torch.Tensor:
+    def forward_process(self, input_data, timestep: Optional[int] = None) -> torch.Tensor:
         """
-        Forward process: Text → Embedding → Add Noise
+        Forward process: Add noise to embedding
         
         Args:
-            text: Input text to process
+            input_data: Either text string or embedding tensor
+            timestep: Specific timestep for noise addition (optional)
             
         Returns:
-            Noisy embedding tensor
+            Tuple of (noisy embedding, noise) or just noisy embedding for backward compatibility
         """
-        if not text or not text.strip():
-            return torch.randn(1, self.config.embedding_dim)
+        # Handle both text and embedding inputs
+        if isinstance(input_data, str):
+            if not input_data or not input_data.strip():
+                return torch.randn(1, self.config.embedding_dim)
+            # Convert text to embedding
+            embedding = self.embedding_processor.text_to_embedding(input_data).to(self.config.device)
+        else:
+            # Assume it's already an embedding tensor
+            embedding = input_data.to(self.config.device)
         
-        # Convert text to embedding
-        embedding = self.embedding_processor.text_to_embedding(text).to(self.config.device)
+        # Use provided timestep or random
+        if timestep is None:
+            timestep = random.randint(0, self.config.num_diffusion_steps - 1)
         
-        # Add noise at random timestep
-        timestep = random.randint(0, self.config.num_diffusion_steps - 1)
-        noisy_embedding, _ = self.noise_scheduler.add_noise(embedding, timestep)
+        # Add noise
+        noisy_embedding, noise = self.noise_scheduler.add_noise(embedding, timestep)
         
-        self.logger.debug(f"Applied forward process to text: '{text[:50]}...'")
-        return noisy_embedding
+        self.logger.debug(f"Applied forward process at timestep {timestep}")
+        
+        # Return format based on input type for backward compatibility
+        if isinstance(input_data, str):
+            return noisy_embedding  # Backward compatibility for text input
+        else:
+            return noisy_embedding, noise  # New format for embedding input
     
     def reverse_process(self, noisy_embedding: torch.Tensor) -> torch.Tensor:
         """
@@ -321,9 +361,57 @@ class DiffusionDefense:
         self.logger.debug("Applied reverse process")
         return current_embedding
     
+    def reverse_process_with_semantic_preservation(self, initial_embedding: torch.Tensor, original_embedding: torch.Tensor) -> torch.Tensor:
+        """
+        Enhanced reverse process with semantic preservation constraints.
+        
+        Args:
+            initial_embedding: The noisy embedding to denoise.
+            original_embedding: The original clean embedding for semantic reference.
+            
+        Returns:
+            The denoised (cleaned) embedding with preserved semantics.
+        """
+        self.logger.debug("Applying semantic-preserving reverse process...")
+        current_embedding = initial_embedding.clone().detach().to(self.config.device)
+        
+        with torch.no_grad():
+            # Denoising loop with semantic preservation
+            for t in range(self.config.num_diffusion_steps - 1, -1, -1):
+                # Predict noise
+                predicted_noise = self.denoising_model(current_embedding, t)
+                
+                # Denoise step
+                alpha_t = torch.tensor(1.0 - self.noise_scheduler.betas[t], device=self.config.device)
+                alpha_bar_t = torch.tensor(self.noise_scheduler.get_alpha_bar(t), device=self.config.device)
+                
+                # Standard reverse step
+                mean = (current_embedding - (self.noise_scheduler.betas[t] / torch.sqrt(1 - alpha_bar_t)) * predicted_noise) / torch.sqrt(alpha_t)
+                
+                if t > 0:
+                    variance = self.noise_scheduler.betas[t]
+                    noise = torch.randn_like(current_embedding)
+                    current_embedding = mean + torch.sqrt(variance) * noise
+                else:
+                    current_embedding = mean
+                
+                # Semantic preservation step: blend with original embedding if similarity is too low
+                if t % 50 == 0:  # Check every 50 steps
+                    similarity = torch.nn.functional.cosine_similarity(
+                        current_embedding, original_embedding, dim=1
+                    ).item()
+                    
+                    if similarity < 0.3:  # If similarity is too low, blend with original
+                        blend_factor = 0.1  # Gentle blending
+                        current_embedding = (1 - blend_factor) * current_embedding + blend_factor * original_embedding
+        
+        self.logger.debug("Applied semantic-preserving reverse process")
+        return current_embedding
+    
     def clean_prompt(self, prompt: str) -> torch.Tensor:
         """
-        Full diffusion cycle: Text → Embedding → Noise → Denoise → Clean Embedding
+        Full diffusion cycle with adaptive noise scheduling and semantic preservation.
+        Text → Embedding → Adaptive Noise → Denoise → Clean Embedding
         
         Args:
             prompt: Input prompt to clean
@@ -336,15 +424,37 @@ class DiffusionDefense:
         
         start_time = time.time()
         
-        # Forward process: Add noise to embedding
-        noisy_embedding = self.forward_process(prompt)
+        # Get original embedding for semantic preservation
+        original_embedding = self.embedding_processor.text_to_embedding(prompt)
         
-        # Reverse process: Denoise embedding
-        clean_embedding = self.reverse_process(noisy_embedding)
+        # Enhanced safety analysis
+        safety_analysis = self.safety_controller.analyze_text_safety(prompt)
+        risk_score = safety_analysis['overall_risk']
+        
+        # Check if content should be blocked
+        should_block, block_reason = self.safety_controller.should_block_content(prompt)
+        if should_block:
+            self.logger.warning(f"Blocking high-risk content: {block_reason}")
+            # Return a safe default embedding
+            return torch.zeros(1, self.config.embedding_dim)
+        
+        # Adaptive timestep based on risk level
+        if risk_score > 0.7:  # High risk
+            timestep = int(self.config.num_diffusion_steps * 0.8)  # More aggressive cleaning
+        elif risk_score > 0.4:  # Medium risk
+            timestep = int(self.config.num_diffusion_steps * 0.5)  # Moderate cleaning
+        else:  # Low risk
+            timestep = int(self.config.num_diffusion_steps * 0.2)  # Gentle cleaning
+        
+        # Forward process: Add adaptive noise to embedding
+        noisy_embedding, _ = self.forward_process(original_embedding, timestep)
+        
+        # Reverse process: Denoise with semantic preservation
+        clean_embedding = self.reverse_process_with_semantic_preservation(noisy_embedding, original_embedding)
         
         processing_time = time.time() - start_time
         
-        self.logger.info(f"Clean prompt completed in {processing_time:.3f}s for: '{prompt[:30]}...'")
+        self.logger.info(f"Clean prompt completed in {processing_time:.3f}s for: '{prompt[:30]}...' (risk: {risk_score:.3f})")
         
         return clean_embedding
     

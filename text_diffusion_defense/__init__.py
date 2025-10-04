@@ -24,6 +24,7 @@ from .control_dd import (
     control_dd_instance
 )
 from .llm_middleware import LLMMiddleware, LLMIntegrationExample
+from .safety_controls import SafetyController, AdaptiveSafetyThresholds
 
 __version__ = "1.0.0"
 __author__ = "Vishaal Chandrasekar"
@@ -37,6 +38,8 @@ __all__ = [
     "ControlDD",
     "LLMMiddleware",
     "LLMIntegrationExample",
+    "SafetyController",
+    "AdaptiveSafetyThresholds",
     "train_model",
     "clean_embedding",
     "add_noise_to_embedding",
