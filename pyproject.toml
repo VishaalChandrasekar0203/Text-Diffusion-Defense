@@ -36,6 +36,8 @@ dependencies = [
     "transformers>=4.20.0",
     "sentence-transformers>=2.2.0",
     "scikit-learn>=1.0.0",
+    "datasets>=2.0.0",
+    "huggingface-hub>=0.16.0",
 ]
 
 [project.optional-dependencies]
