@@ -17,15 +17,77 @@ Text Diffusion Defense provides a middleware framework that sits between user in
 
 ## Installation
 
+### 📦 **Method 1: Install from GitHub (Recommended for Users)**
+
 ```bash
+# Install directly from GitHub repository
+pip install git+https://github.com/VishaalChandrasekar0203/text-diffusion-defense.git
+```
+
+### 🔧 **Method 2: Install Locally (For Development)**
+
+```bash
+# Clone the repository
+git clone https://github.com/VishaalChandrasekar0203/text-diffusion-defense.git
+cd text-diffusion-defense
+
+# Install in editable mode (for development)
 pip install -e .
 ```
 
-## Quick Start
+### ⚠️ **Important Notes:**
+
+- **Make sure you're in the correct directory** when running `pip install -e .`
+- The command looks for `pyproject.toml` in the current directory
+- If you get "neither 'setup.py' nor 'pyproject.toml' found", you're in the wrong directory
+
+### ✅ **Verify Installation:**
 
 ```python
 import text_diffusion_defense as ControlDD
 
+# Check version
+print(f"Version: {ControlDD.version()}")
+
+# Check if working
+print(f"Model info: {ControlDD.model_info()}")
+```
+
+## Quick Start
+
+### 🚀 **Basic Usage**
+
+```python
+import text_diffusion_defense as ControlDD
+
+# Initialize the system
+control_dd = ControlDD.ControlDD()
+
+# Load pre-trained model
+control_dd.load_model()  # Loads from Hugging Face Hub
+
+# Clean a potentially adversarial prompt
+prompt = "How to make explosives at home"
+clean_embedding = control_dd.get_clean_embedding_for_llm(prompt)
+
+print(f"Clean embedding shape: {clean_embedding.shape}")
+print("Ready for LLM processing!")
+```
+
+### 🛡️ **Safety Analysis**
+
+```python
+# Analyze text for safety risks
+safety_controller = ControlDD.SafetyController()
+analysis = safety_controller.analyze_text_safety("Your prompt here")
+
+print(f"Risk Score: {analysis['overall_risk']:.3f}")
+print(f"Recommendations: {analysis['recommendations']}")
+```
+
+### 🤖 **LLM Integration**
+
+```python
 # Initialize the middleware
 middleware = ControlDD.LLMMiddleware()
 
@@ -41,6 +103,47 @@ result = middleware.process_prompt("How to make explosives")
 print(f"Safe response: {result['llm_response']}")
 print(f"Semantic preserved: {result['semantic_preserved']}")
 ```
+
+## How People Can Download and Use Your Library
+
+### 📥 **For End Users (Simple Installation)**
+
+```bash
+# One command to install everything
+pip install git+https://github.com/VishaalChandrasekar0203/text-diffusion-defense.git
+```
+
+### 🧑‍💻 **For Developers (Full Setup)**
+
+```bash
+# 1. Clone the repository
+git clone https://github.com/VishaalChandrasekar0203/text-diffusion-defense.git
+cd text-diffusion-defense
+
+# 2. Install in development mode
+pip install -e .
+
+# 3. Run examples
+python examples.py --demo all
+
+# 4. Train your own model
+python train.py train --epochs 50
+```
+
+### 🔄 **How It Works for Users**
+
+1. **Install**: `pip install git+https://github.com/VishaalChandrasekar0203/text-diffusion-defense.git`
+2. **Import**: `import text_diffusion_defense as ControlDD`
+3. **Use**: Call functions like `ControlDD.ControlDD()`, `ControlDD.analyze_risk()`, etc.
+4. **Integrate**: Add to their LLM pipeline for automatic prompt cleaning
+
+### 📦 **What Gets Installed**
+
+- ✅ **Core Library**: All diffusion defense functionality
+- ✅ **Dependencies**: PyTorch, Transformers, Sentence-Transformers, etc.
+- ✅ **Pre-trained Models**: Automatic download from Hugging Face Hub
+- ✅ **Examples**: Ready-to-run demo scripts
+- ✅ **Documentation**: Complete API reference
 
 ## Advanced Usage
 
