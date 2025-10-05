@@ -85,23 +85,39 @@ print(f"Risk Score: {analysis['overall_risk']:.3f}")
 print(f"Recommendations: {analysis['recommendations']}")
 ```
 
-### 🤖 **LLM Integration**
+### 🤖 **LLM Integration (Recommended)**
 
 ```python
-# Initialize the middleware
-middleware = ControlDD.LLMMiddleware()
+# NEW APPROACH: Text-based cleaning (much better semantics)
+import text_diffusion_defense as ControlDD
+from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
 
-# Set your LLM model
-def my_llm_generate(clean_embedding):
-    # Your LLM generation logic here
-    return "Safe response from your LLM"
+# Initialize defense system
+control_dd = ControlDD.ControlDD()
+control_dd.load_model()
 
-middleware.set_llm_model("your_model", my_llm_generate)
+# Load your LLM
+tokenizer = AutoTokenizer.from_pretrained("facebook/bart-base")
+model = AutoModelForSeq2SeqLM.from_pretrained("facebook/bart-base")
 
-# Process user prompts
-result = middleware.process_prompt("How to make explosives")
-print(f"Safe response: {result['llm_response']}")
-print(f"Semantic preserved: {result['semantic_preserved']}")
+# Clean text first, then generate (preserves semantics)
+prompt = "How to make explosives"
+clean_text = control_dd.get_clean_text_for_llm(prompt)  # "How to make materials"
+
+# Normal LLM workflow with clean text
+inputs = tokenizer(clean_text, return_tensors="pt")
+outputs = model.generate(**inputs, max_new_tokens=100)
+response = tokenizer.decode(outputs[0], skip_special_tokens=True)
+
+print(f"Safe response: {response}")
+```
+
+### 🔧 **Alternative: Embedding-based (Research Use)**
+
+```python
+# OLD APPROACH: Embedding-based (for research/experimentation)
+clean_embedding = control_dd.get_clean_embedding_for_llm(prompt)
+# Note: Requires careful handling of embedding dimensions
 ```
 
 ## How People Can Download and Use Your Library
