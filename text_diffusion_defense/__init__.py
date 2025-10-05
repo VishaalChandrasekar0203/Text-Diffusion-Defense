@@ -48,6 +48,7 @@ __all__ = [
     "denoise_embedding",
     "analyze_risk",
     "get_clean_embedding_for_llm",
+    "get_clean_text_for_llm",
     "save_model",
     "load_model",
     "get_status",

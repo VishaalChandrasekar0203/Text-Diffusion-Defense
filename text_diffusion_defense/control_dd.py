@@ -260,6 +260,27 @@ class ControlDD:
         
         return clean_embedding
     
+    def get_clean_text_for_llm(self, prompt: str) -> str:
+        """
+        Process a prompt and return clean text ready for LLM consumption.
+        This is the recommended method for better semantic preservation.
+        
+        Args:
+            prompt: The input prompt to process
+            
+        Returns:
+            Clean text ready for LLM
+        """
+        logger.info(f"Processing prompt to clean text: '{prompt[:30]}...'")
+        
+        # Use advanced text-based cleaning for better semantics
+        clean_text = self.diffusion_defense.clean_prompt_to_text(prompt)
+        
+        logger.info(f"Cleaned text: '{clean_text[:50]}...'")
+        logger.info("Clean text ready for LLM!")
+        
+        return clean_text
+    
     def save_model(self, path: str = "diffusion_defense_model.pt"):
         """Save the trained model."""
         self.diffusion_defense.save_model(path)
@@ -326,6 +347,10 @@ def analyze_risk(text: str) -> float:
 def get_clean_embedding_for_llm(prompt: str) -> torch.Tensor:
     """Process a prompt and return a clean embedding ready for LLM consumption."""
     return control_dd_instance.get_clean_embedding_for_llm(prompt)
+
+def get_clean_text_for_llm(prompt: str) -> str:
+    """Process a prompt and return clean text ready for LLM consumption."""
+    return control_dd_instance.get_clean_text_for_llm(prompt)
 
 def save_model(path: str = "diffusion_defense_model.pt"):
     """Save the trained model."""

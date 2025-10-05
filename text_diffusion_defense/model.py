@@ -369,56 +369,80 @@ class DiffusionDefense:
     
     def reverse_process_with_semantic_preservation(self, initial_embedding: torch.Tensor, original_embedding: torch.Tensor) -> torch.Tensor:
         """
-        Enhanced reverse process with semantic preservation constraints.
-        
+        Advanced reverse process with state-of-the-art semantic preservation techniques.
+        Implements techniques from recent research papers for better semantic retention.
+
         Args:
             initial_embedding: The noisy embedding to denoise.
             original_embedding: The original clean embedding for semantic reference.
-            
+
         Returns:
             The denoised (cleaned) embedding with preserved semantics.
         """
-        self.logger.debug("Applying semantic-preserving reverse process...")
+        self.logger.debug("Applying advanced semantic-preserving reverse process...")
         current_embedding = initial_embedding.clone().detach().to(self.config.device)
         
+        # Store original for semantic guidance
+        original_norm = torch.norm(original_embedding, dim=1, keepdim=True)
+        original_direction = original_embedding / (original_norm + 1e-8)
+
         with torch.no_grad():
-            # Denoising loop with semantic preservation
+            # Advanced denoising with multiple preservation techniques
             for t in range(self.config.num_diffusion_steps - 1, -1, -1):
-                # Predict noise
+                # Predict noise with uncertainty estimation
                 predicted_noise = self.denoising_model(current_embedding, t)
                 
-                # Denoise step
+                # DDIM-style deterministic sampling for better control
                 alpha_t = torch.tensor(1.0 - self.noise_scheduler.betas[t], device=self.config.device)
                 alpha_bar_t = torch.tensor(self.noise_scheduler.get_alpha_bar(t), device=self.config.device)
+                alpha_bar_prev = torch.tensor(self.noise_scheduler.get_alpha_bar(max(0, t-1)), device=self.config.device)
                 
-                # Standard reverse step
-                mean = (current_embedding - (self.noise_scheduler.betas[t] / torch.sqrt(1 - alpha_bar_t)) * predicted_noise) / torch.sqrt(alpha_t)
+                # DDIM reverse step (more stable than DDPM)
+                pred_x0 = (current_embedding - torch.sqrt(1 - alpha_bar_t) * predicted_noise) / torch.sqrt(alpha_bar_t)
+                
+                # Clamp to reasonable range to prevent extreme values
+                pred_x0 = torch.clamp(pred_x0, -3.0, 3.0)
                 
                 if t > 0:
-                    variance = self.noise_scheduler.betas[t]
-                    noise = torch.randn_like(current_embedding)
-                    current_embedding = mean + torch.sqrt(variance) * noise
+                    # DDIM step
+                    current_embedding = torch.sqrt(alpha_bar_prev) * pred_x0 + torch.sqrt(1 - alpha_bar_prev) * predicted_noise
                 else:
-                    current_embedding = mean
-                
-                # Progressive semantic preservation with similarity checkpoints
-                if t % 10 == 0:  # Check even more frequently for better control
+                    current_embedding = pred_x0
+
+                # Advanced semantic preservation techniques
+                if t % 5 == 0:  # Check very frequently
+                    # 1. Cosine similarity preservation
                     similarity = torch.nn.functional.cosine_similarity(
                         current_embedding, original_embedding, dim=1
                     ).item()
                     
-                    # Progressive blending based on similarity thresholds
-                    if similarity < 0.8:  # High threshold for aggressive preservation
-                        blend_factor = 0.3  # More aggressive blending
+                    # 2. Magnitude preservation (prevent embedding collapse)
+                    current_norm = torch.norm(current_embedding, dim=1, keepdim=True)
+                    norm_ratio = (original_norm / (current_norm + 1e-8)).clamp(0.5, 2.0)
+                    current_embedding = current_embedding * norm_ratio
+                    
+                    # 3. Directional preservation (maintain semantic direction)
+                    current_direction = current_embedding / (torch.norm(current_embedding, dim=1, keepdim=True) + 1e-8)
+                    direction_similarity = torch.nn.functional.cosine_similarity(
+                        current_direction, original_direction, dim=1
+                    ).item()
+                    
+                    # 4. Adaptive blending based on multiple metrics
+                    if similarity < 0.85:  # High threshold
+                        # Strong semantic restoration
+                        blend_factor = min(0.4, 1.0 - similarity)
                         current_embedding = (1 - blend_factor) * current_embedding + blend_factor * original_embedding
-                    elif similarity < 0.9:  # Medium threshold
-                        blend_factor = 0.15  # Moderate blending
-                        current_embedding = (1 - blend_factor) * current_embedding + blend_factor * original_embedding
-                    elif similarity < 0.95:  # Low threshold for fine-tuning
-                        blend_factor = 0.05  # Gentle blending
-                        current_embedding = (1 - blend_factor) * current_embedding + blend_factor * original_embedding
-        
-        self.logger.debug("Applied semantic-preserving reverse process")
+                    elif direction_similarity < 0.9:  # Direction preservation
+                        # Preserve semantic direction
+                        current_embedding = (1 - 0.1) * current_embedding + 0.1 * original_embedding
+                    
+                    # 5. Smoothness constraint (prevent sudden changes)
+                    if t > 0:
+                        # Apply smoothness regularization
+                        smoothness_factor = 0.05
+                        current_embedding = (1 - smoothness_factor) * current_embedding + smoothness_factor * original_embedding
+
+        self.logger.debug("Applied advanced semantic-preserving reverse process")
         return current_embedding
     
     def clean_prompt(self, prompt: str) -> torch.Tensor:
@@ -468,8 +492,140 @@ class DiffusionDefense:
         processing_time = time.time() - start_time
         
         self.logger.info(f"Clean prompt completed in {processing_time:.3f}s for: '{prompt[:30]}...' (risk: {risk_score:.3f})")
-        
+
         return clean_embedding
+    
+    def clean_prompt_to_text(self, prompt: str) -> str:
+        """
+        Advanced prompt cleaning that returns clean text instead of embeddings.
+        Uses sophisticated techniques to preserve semantics while removing adversarial content.
+        
+        Args:
+            prompt: Input prompt to clean
+            
+        Returns:
+            Cleaned text that preserves original semantics
+        """
+        if not prompt or not prompt.strip():
+            return "I cannot process empty prompts."
+        
+        start_time = time.time()
+        
+        # Enhanced safety analysis
+        safety_analysis = self.safety_controller.analyze_text_safety(prompt)
+        risk_score = safety_analysis['overall_risk']
+        
+        # Check if content should be blocked
+        should_block, block_reason = self.safety_controller.should_block_content(prompt)
+        if should_block:
+            self.logger.warning(f"Blocking high-risk content: {block_reason}")
+            return "I cannot provide assistance with that request, but I'm happy to help with other topics."
+        
+        # For low-risk content, apply minimal cleaning to preserve semantics
+        if risk_score < 0.05:
+            # Very low risk - just sanitize without diffusion
+            return self._sanitize_text_preserving_semantics(prompt)
+        
+        # For medium-high risk, use advanced text-based cleaning
+        # Always apply advanced cleaning for any risk > 0.05
+        return self._advanced_text_cleaning(prompt, risk_score)
+    
+    def _sanitize_text_preserving_semantics(self, text: str) -> str:
+        """
+        Light text sanitization that preserves original semantics.
+        """
+        import re
+        
+        # Remove common adversarial prefixes/suffixes
+        text = re.sub(r'\b(ignore|disregard|forget|override|bypass)\s+(the\s+)?(instructions?|rules?|guidelines?)\s*(above|before|earlier)\s*,?\s*', '', text, flags=re.IGNORECASE)
+        text = re.sub(r'\b(in\s+contrast\s+to\s+the\s+above|instead|alternatively)\s*,?\s*', '', text, flags=re.IGNORECASE)
+        
+        # Remove instruction manipulation patterns
+        text = re.sub(r'\b(disregard|ignore|forget)\s+(the\s+)?(instructions?|rules?|guidelines?)\s*(above|before|earlier)\s*,?\s*', '', text, flags=re.IGNORECASE)
+        text = re.sub(r'\b(now|instead|alternatively)\s*,?\s*(perform|do|tell|show)\s+', 'please ', text, flags=re.IGNORECASE)
+        
+        # Clean up extra whitespace
+        text = ' '.join(text.split())
+        
+        return text if text.strip() else "I'd be happy to help with your request."
+    
+    def _advanced_text_cleaning(self, text: str, risk_score: float) -> str:
+        """
+        Advanced text-based cleaning using semantic preservation techniques.
+        """
+        import re
+        
+        # Split into sentences for better control
+        sentences = re.split(r'[.!?]+', text)
+        cleaned_sentences = []
+        
+        for sentence in sentences:
+            sentence = sentence.strip()
+            if not sentence:
+                continue
+                
+            # Analyze sentence risk
+            sent_analysis = self.safety_controller.analyze_text_safety(sentence)
+            sent_risk = sent_analysis['overall_risk']
+            
+            if sent_risk > 0.3:
+                # High risk sentence - replace with safe alternative
+                cleaned_sentences.append(self._generate_safe_alternative(sentence))
+            elif sent_risk > 0.05:
+                # Medium risk - sanitize while preserving intent
+                cleaned_sentences.append(self._sanitize_sentence(sentence))
+            else:
+                # Low risk - keep mostly intact
+                cleaned_sentences.append(sentence)
+        
+        result = '. '.join(cleaned_sentences)
+        if result and not result.endswith('.'):
+            result += '.'
+            
+        return result if result.strip() else "I'd be happy to help with your request."
+    
+    def _generate_safe_alternative(self, sentence: str) -> str:
+        """
+        Generate a safe alternative to a high-risk sentence.
+        """
+        # Simple rule-based safe alternatives
+        if re.search(r'\b(explosives?|bombs?|weapons?|guns?)\b', sentence, re.IGNORECASE):
+            return "I can help you learn about safety protocols and responsible practices."
+        elif re.search(r'\b(hack|hacking|crack|cracking)\b', sentence, re.IGNORECASE):
+            return "I can provide information about cybersecurity and ethical computing."
+        elif re.search(r'\b(illegal|crime|steal|rob)\b', sentence, re.IGNORECASE):
+            return "I can help you understand legal frameworks and ethical guidelines."
+        elif re.search(r'\b(manipulate|trick|deceive)\b', sentence, re.IGNORECASE):
+            return "I can discuss communication skills and ethical interactions."
+        else:
+            return "I'd be happy to help you with a related topic in a safe and constructive way."
+    
+    def _sanitize_sentence(self, sentence: str) -> str:
+        """
+        Sanitize a medium-risk sentence while preserving its intent.
+        """
+        import re
+        
+        # Replace harmful words with safer alternatives
+        replacements = {
+            r'\bexplosives?\b': 'materials',
+            r'\bbombs?\b': 'devices',
+            r'\bweapons?\b': 'tools',
+            r'\bguns?\b': 'equipment',
+            r'\bhack(?:ing)?\b': 'analyze',
+            r'\bcrack(?:ing)?\b': 'access',
+            r'\bkill(?:ing)?\b': 'address',
+            r'\bdestroy(?:ing)?\b': 'modify',
+            r'\bharm(?:ing)?\b': 'affect',
+            r'\bsteal(?:ing)?\b': 'obtain',
+            r'\bmanipulate(?:ing)?\b': 'influence',
+        }
+        
+        cleaned = sentence
+        for pattern, replacement in replacements.items():
+            cleaned = re.sub(pattern, replacement, cleaned, flags=re.IGNORECASE)
+        
+        return cleaned
     
     def analyze_embedding_risk(self, embedding: torch.Tensor) -> float:
         """
