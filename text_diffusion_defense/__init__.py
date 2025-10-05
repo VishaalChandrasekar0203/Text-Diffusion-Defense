@@ -10,11 +10,13 @@ from .utils import EmbeddingProcessor, DefenseConfig
 from .control_dd import (
     ControlDD,
     train_model,
+    train_with_edge_cases,  # Added
     clean_embedding,
     add_noise_to_embedding,
     denoise_embedding,
     analyze_risk,
     get_clean_embedding_for_llm,
+    get_clean_text_for_llm,  # Added
     save_model,
     load_model,
     get_status,
@@ -43,6 +45,7 @@ __all__ = [
     "SafetyController",
     "AdaptiveSafetyThresholds",
     "train_model",
+    "train_with_edge_cases",  # Added
     "clean_embedding",
     "add_noise_to_embedding",
     "denoise_embedding",

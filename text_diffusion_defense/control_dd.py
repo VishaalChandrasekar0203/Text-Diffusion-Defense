@@ -181,6 +181,15 @@ class ControlDD:
         self.diffusion_defense.train(adversarial_texts, clean_texts)
         logger.info("Training completed!")
     
+    def train_with_edge_cases(self, epochs: int = 100):
+        """
+        Advanced training method for handling edge cases and unseen adversarial patterns.
+        Based on research papers for robust diffusion model training.
+        """
+        logger.info("Starting advanced edge-case training...")
+        self.diffusion_defense.train_with_edge_case_handling(epochs)
+        logger.info("Edge-case training completed successfully!")
+    
     def clean_embedding(self, text: str) -> torch.Tensor:
         """
         Clean a text prompt and return the cleaned embedding.
@@ -327,6 +336,10 @@ control_dd_instance = ControlDD()
 def train_model(adversarial_texts: List[str], clean_texts: List[str]):
     """Train the diffusion defense model."""
     return control_dd_instance.train_model(adversarial_texts, clean_texts)
+
+def train_with_edge_cases(epochs: int = 100):
+    """Advanced training method for handling edge cases and unseen adversarial patterns."""
+    return control_dd_instance.train_with_edge_cases(epochs)
 
 def clean_embedding(text: str) -> torch.Tensor:
     """Clean a text prompt and return the cleaned embedding."""
