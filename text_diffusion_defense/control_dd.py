@@ -190,6 +190,67 @@ class ControlDD:
         self.diffusion_defense.train_with_edge_case_handling(epochs)
         logger.info("Edge-case training completed successfully!")
     
+    def advanced_pattern_learning_training(self, epochs: int = 200, learning_rate: float = 0.001):
+        """
+        Advanced training that learns adversarial patterns through extensive data and optimal hyperparameters.
+        This method trains the model to detect and mitigate adversarial prompts without explicit rules.
+        """
+        logger.info("🚀 Starting Advanced Pattern Learning Training...")
+        training_results = self.diffusion_defense.advanced_pattern_learning_training(epochs, learning_rate)
+        
+        # Save training results to file
+        self._save_training_results(training_results, epochs, learning_rate)
+        
+        logger.info("✅ Advanced pattern learning training completed successfully!")
+        return training_results
+    
+    def _save_training_results(self, results: Dict[str, Any], epochs: int, learning_rate: float):
+        """Save detailed training results to a separate file."""
+        import json
+        from datetime import datetime
+        
+        # Create comprehensive training report
+        training_report = {
+            "training_info": {
+                "timestamp": datetime.now().isoformat(),
+                "epochs": epochs,
+                "learning_rate": learning_rate,
+                "total_training_time": results.get("training_time", 0),
+                "best_epoch": results.get("best_epoch", 0),
+                "best_loss": results.get("best_loss", 0)
+            },
+            "performance_metrics": {
+                "final_loss": results["losses"][-1] if results["losses"] else 0,
+                "final_semantic_similarity": results["semantic_similarities"][-1] if results["semantic_similarities"] else 0,
+                "loss_improvement": results["losses"][0] - results["losses"][-1] if len(results["losses"]) > 1 else 0,
+                "semantic_improvement": results["semantic_similarities"][-1] - results["semantic_similarities"][0] if len(results["semantic_similarities"]) > 1 else 0
+            },
+            "training_curves": {
+                "epochs": results["epochs"],
+                "losses": results["losses"],
+                "semantic_similarities": results["semantic_similarities"],
+                "learning_rates": results["learning_rates"]
+            },
+            "hyperparameters": {
+                "learning_rate": learning_rate,
+                "weight_decay": 1e-5,
+                "betas": [0.9, 0.999],
+                "eps": 1e-8,
+                "scheduler": "CosineAnnealingWarmRestarts",
+                "gradient_clipping": 1.0
+            }
+        }
+        
+        # Save to file
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"training_results_{timestamp}.json"
+        
+        with open(filename, 'w') as f:
+            json.dump(training_report, f, indent=2)
+        
+        logger.info(f"📊 Training results saved to: {filename}")
+        return filename
+    
     def clean_embedding(self, text: str) -> torch.Tensor:
         """
         Clean a text prompt and return the cleaned embedding.
@@ -340,6 +401,10 @@ def train_model(adversarial_texts: List[str], clean_texts: List[str]):
 def train_with_edge_cases(epochs: int = 100):
     """Advanced training method for handling edge cases and unseen adversarial patterns."""
     return control_dd_instance.train_with_edge_cases(epochs)
+
+def advanced_pattern_learning_training(epochs: int = 200, learning_rate: float = 0.001):
+    """Advanced training that learns adversarial patterns through extensive data and optimal hyperparameters."""
+    return control_dd_instance.advanced_pattern_learning_training(epochs, learning_rate)
 
 def clean_embedding(text: str) -> torch.Tensor:
     """Clean a text prompt and return the cleaned embedding."""

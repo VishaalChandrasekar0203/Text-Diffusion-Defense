@@ -315,7 +315,7 @@ class SafetyController:
         """Load patterns for detecting harmful content."""
         return [
             # Violence patterns - Enhanced with more edge cases
-            {'pattern': r'\b(kill|murder|assassinate|destroy|bomb|explode|explosive|explosives|weapon|weapons|gun|guns|knife|knives|sword|swords|violence|harm|hurt|attack|fight|blood|death|suicide|torture|stab|stabbing|shoot|shooting|beat|beating)\b', 'category': 'violence', 'weight': 0.9},
+            {'pattern': r'\b(kill|murder|assassinate|destroy|bomb|explode|explosive|explosives|weapon|weapons|gun|guns|knife|knives|sword|swords|violence|harm|hurt|attack|fight|blood|death|suicide|torture|stab|stabbing|shoot|shooting|beat|beating|malware|virus|viruses|trojan|trojans|ransomware|phishing|scam|fraud)\b', 'category': 'violence', 'weight': 0.9},
             {'pattern': r'\b(ammunition|firearm|firearms|poison|toxic|dangerous|lethal|sharp|blade|blades|sharp|cutting|piercing)\b', 'category': 'violence', 'weight': 0.8},
             {'pattern': r'\b(human|person|people)\s+(hurt|harm|kill|attack|stab|shoot|beat)\b', 'category': 'violence', 'weight': 0.95},
             

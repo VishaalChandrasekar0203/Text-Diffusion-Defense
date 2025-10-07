@@ -46,6 +46,7 @@ __all__ = [
     "AdaptiveSafetyThresholds",
     "train_model",
     "train_with_edge_cases",  # Added
+    "advanced_pattern_learning_training",  # Added
     "clean_embedding",
     "add_noise_to_embedding",
     "denoise_embedding",
