@@ -87,7 +87,7 @@ clean_text = defense.get_clean_text_for_llm(user_prompt)
 
 ---
 
-## 🔍 Transparent Workflow
+## Workflow
 
 ```python
 import text_diffusion_defense as ControlDD
@@ -119,7 +119,7 @@ else:
 
 ---
 
-## 🤖 Integration Examples
+## 🤖 Integration
 
 ### With OpenAI
 
