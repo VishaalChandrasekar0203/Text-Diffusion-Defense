@@ -13,7 +13,6 @@ Pre-trained LLM safety middleware using embedding-based diffusion processes to d
 4. **Semantic Preservation**: Advanced techniques maintain meaning
 5. **Safe Output**: Clean text returned for LLM processing
 
-All processing done locally on CPU - no external API calls required.
 
 ---
 
