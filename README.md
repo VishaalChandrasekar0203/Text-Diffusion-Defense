@@ -2,6 +2,48 @@
 
 Pre-trained LLM safety middleware using embedding-based diffusion processes to defend against adversarial text attacks.
 
+
+---
+
+## 🎓 How It Works
+
+1. **Input Processing**: User prompt converted to 384-dim embedding
+2. **Safety Analysis**: Pattern detection identifies risk categories
+3. **Diffusion Cleaning**: 1000-step process removes adversarial content
+4. **Semantic Preservation**: Advanced techniques maintain meaning
+5. **Safe Output**: Clean text returned for LLM processing
+
+All processing done locally on CPU - no external API calls required.
+
+---
+
+## 🔒 Safety Features
+
+- **Multi-Category Detection**: Identifies violence, illegal activities, manipulation, hate speech, self-harm, and terrorism patterns
+- **Transparent Analysis**: Users see what was detected with clear explanations
+- **Double Verification**: Re-verifies user confirmations to prevent bypass attempts
+- **Adaptive Thresholds**: Context-aware safety levels (educational, research, safety-critical)
+- **Semantic Preservation**: Maintains 69.1% of original meaning while removing harmful content
+- **Zero API Calls**: Runs locally, protecting user privacy and data
+
+---
+
+## 📊 Performance Benchmarks
+
+| System | Safety Improvement | Semantic Preservation | Speed |
+|--------|-------------------|----------------------|-------|
+| **Text Diffusion Defense** | 0.474 | **0.691** 🏆 | 192ms |
+| OpenAI Safety | 0.690 | 0.370 | 50ms |
+| Anthropic Safety | 0.710 | 0.290 | 30ms |
+
+**Text Diffusion Defense achieves 2X better semantic preservation while maintaining robust safety.**
+
+---
+
+## 💡 Impact
+
+This library provides an efficient, cost-effective alternative to commercial LLM safety solutions, enabling organizations of all sizes to implement robust safety measures without significant infrastructure costs. The local processing approach also ensures data privacy and reduces environmental impact.
+
 ---
 
 ## 📚 Project Structure
@@ -23,17 +65,6 @@ text_diffusion_defense/
 
 ---
 
-## 🔒 Safety Features
-
-- **Multi-Category Detection**: Identifies violence, illegal activities, manipulation, hate speech, self-harm, and terrorism patterns
-- **Transparent Analysis**: Users see what was detected with clear explanations
-- **Double Verification**: Re-verifies user confirmations to prevent bypass attempts
-- **Adaptive Thresholds**: Context-aware safety levels (educational, research, safety-critical)
-- **Semantic Preservation**: Maintains 69.1% of original meaning while removing harmful content
-- **Zero API Calls**: Runs locally, protecting user privacy and data
-
----
-
 ## 📦 Installation
 
 ```bash
@@ -44,7 +75,7 @@ pip install git+https://github.com/VishaalChandrasekar0203/text-diffusion-defens
 
 ## 🚀 Quick Start
 
-### Simple Usage (3 Lines)
+### Simple Usage
 
 ```python
 import text_diffusion_defense as ControlDD
@@ -131,36 +162,6 @@ response = your_llm.generate(clean_text)
 
 ---
 
-## 📊 Performance Benchmarks
-
-| System | Safety Improvement | Semantic Preservation | Speed |
-|--------|-------------------|----------------------|-------|
-| **Text Diffusion Defense** | 0.474 | **0.691** 🏆 | 192ms |
-| OpenAI Safety | 0.690 | 0.370 | 50ms |
-| Anthropic Safety | 0.710 | 0.290 | 30ms |
-
-**Text Diffusion Defense achieves 2X better semantic preservation while maintaining robust safety.**
-
----
-
-## 🎓 How It Works
-
-1. **Input Processing**: User prompt converted to 384-dim embedding
-2. **Safety Analysis**: Pattern detection identifies risk categories
-3. **Diffusion Cleaning**: 1000-step process removes adversarial content
-4. **Semantic Preservation**: Advanced techniques maintain meaning
-5. **Safe Output**: Clean text returned for LLM processing
-
-All processing done locally on CPU - no external API calls required.
-
----
-
-## 💡 Impact
-
-This library provides an efficient, cost-effective alternative to commercial LLM safety solutions, enabling organizations of all sizes to implement robust safety measures without significant infrastructure costs. The local processing approach also ensures data privacy and reduces environmental impact.
-
----
-
 ## 🆘 Support
 
 - **Issues**: [GitHub Issues](https://github.com/VishaalChandrasekar0203/text-diffusion-defense/issues)
@@ -181,7 +182,7 @@ This library provides an efficient, cost-effective alternative to commercial LLM
 
 ---
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
 - Built on PyTorch and Transformers libraries
 - Uses sentence-transformers for embedding generation
@@ -190,4 +191,3 @@ This library provides an efficient, cost-effective alternative to commercial LLM
 
 ---
 
-*Text Diffusion Defense - Making AI safety accessible to everyone*
