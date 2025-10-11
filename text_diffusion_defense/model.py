@@ -18,7 +18,8 @@ from .utils import (
     EmbeddingProcessor, 
     NoiseScheduler,
     DenoisingModel,
-    setup_logging
+    setup_logging,
+    create_noise_scheduler
 )
 from .utils import SafetyController, AdaptiveSafetyThresholds
 
@@ -39,8 +40,11 @@ class DiffusionDefense:
             model_name=self.config.model_name,
             cache_dir=self.config.cache_dir
         )
-        self.noise_scheduler = NoiseScheduler(self.config)
-        self.denoising_model = DenoisingModel(self.config).to(self.config.device)
+        self.noise_scheduler = create_noise_scheduler(self.config)
+        self.denoising_model = DenoisingModel(
+            embedding_dim=self.config.embedding_dim,
+            hidden_dim=self.config.hidden_dim
+        ).to(self.config.device)
         
         # Initialize safety controller
         self.safety_controller = SafetyController()
@@ -334,6 +338,22 @@ class DiffusionDefense:
         self.logger.info(f"🏆 Best loss: {training_results['best_loss']:.4f} at epoch {training_results['best_epoch']}")
         
         return training_results
+    
+    def analyze_embedding_risk(self, embedding: torch.Tensor) -> float:
+        """
+        Analyze the risk level of an embedding.
+        Returns a risk score between 0 and 1.
+        """
+        # Use safety controller to analyze risk
+        # Since we only have embedding, we use a simplified approach
+        # In practice, you'd want to maintain text-to-embedding mappings
+        # For now, use embedding norm and distance from origin as a proxy
+        norm = torch.norm(embedding).item()
+        
+        # Normalize to 0-1 range (typical embedding norms are 0-10)
+        risk_score = min(1.0, max(0.0, (norm - 5.0) / 10.0))
+        
+        return risk_score
     
     def clean_prompt(self, prompt: str) -> torch.Tensor:
         """

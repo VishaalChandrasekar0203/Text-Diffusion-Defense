@@ -1,15 +1,12 @@
 """
 ControlDD: Main interface for the Text Diffusion Defense library.
-Includes safety controls and LLM middleware functionality.
+Simple, clean, production-ready.
 """
 
 import torch
-import time
 import logging
 import re
-import numpy as np
-from typing import List, Dict, Any, Optional, Tuple, Callable
-from sklearn.metrics.pairwise import cosine_similarity
+from typing import List, Dict, Any, Optional
 from .model import DiffusionDefense
 from .utils import DefenseConfig, EmbeddingProcessor, setup_logging, SafetyController, AdaptiveSafetyThresholds
 
@@ -17,152 +14,33 @@ from .utils import DefenseConfig, EmbeddingProcessor, setup_logging, SafetyContr
 logger = setup_logging(DefenseConfig())
 
 
-class LLMMiddleware:
-    """
-    Middleware to integrate the Text Diffusion Defense library with an LLM.
-    It intercepts prompts, cleans them using the diffusion model, and passes
-    the cleaned embeddings to the LLM. It also monitors semantic similarity.
-    """
-    
-    def __init__(self, config: Optional[DefenseConfig] = None):
-        self.config = config or DefenseConfig()
-        self.logger = setup_logging(self.config)
-        self.diffusion_defense = DiffusionDefense(self.config)
-        self.embedding_processor = EmbeddingProcessor(self.config.model_name, self.config.cache_dir)
-        self.llm_model: Optional[Any] = None
-        self.llm_generate_fn: Optional[Callable] = None
-        
-        self.stats = {
-            "total_requests": 0,
-            "processed_requests": 0,
-            "blocked_requests": 0,
-            "avg_processing_time": 0.0,
-            "avg_similarity_score": 0.0,
-            "semantic_preserved_count": 0,
-            "risk_scores": []
-        }
-        self.logger.info("LLM Middleware initialized")
-
-    def set_llm_model(self, model: Any, generate_fn: Callable):
-        """Set the LLM model and its generation function."""
-        self.llm_model = model
-        self.llm_generate_fn = generate_fn
-        self.logger.info("Mock LLM configured")
-
-    def _calculate_semantic_similarity(self, emb1: torch.Tensor, emb2: torch.Tensor) -> float:
-        """Calculate cosine similarity between two embeddings."""
-        if emb1.dim() == 1:
-            emb1 = emb1.unsqueeze(0)
-        if emb2.dim() == 1:
-            emb2 = emb2.unsqueeze(0)
-        
-        # Ensure embeddings are on CPU for scikit-learn
-        emb1_np = emb1.cpu().detach().numpy()
-        emb2_np = emb2.cpu().detach().numpy()
-        
-        similarity = cosine_similarity(emb1_np, emb2_np)[0][0]
-        return float(similarity)
-
-    def process_prompt(self, prompt: str) -> Dict[str, Any]:
-        """
-        Processes a user prompt through the diffusion defense and passes it to the LLM.
-        
-        Returns:
-            A dictionary containing the cleaned embedding, LLM response, and defense metrics.
-        """
-        self.stats["total_requests"] += 1
-        start_time = time.time()
-        
-        original_embedding = self.embedding_processor.text_to_embedding(prompt)
-        
-        # Clean the prompt using the diffusion defense
-        clean_embedding = self.diffusion_defense.clean_prompt(prompt)
-        
-        # Calculate semantic similarity
-        similarity_score = self._calculate_semantic_similarity(original_embedding, clean_embedding)
-        semantic_preserved = similarity_score >= 0.7
-        
-        if semantic_preserved:
-            self.stats["semantic_preserved_count"] += 1
-        else:
-            self.logger.warning(f"Low similarity score: {similarity_score:.3f}")
-
-        # Pass the cleaned embedding to the LLM
-        llm_response = "I understand you're looking for information. Let me provide you with safe and helpful content."
-        if self.llm_model and self.llm_generate_fn:
-            llm_response = self.llm_generate_fn(clean_embedding)
-        
-        end_time = time.time()
-        processing_time = end_time - start_time
-        
-        # Update statistics
-        self.stats["processed_requests"] += 1
-        self.stats["avg_processing_time"] = (self.stats["avg_processing_time"] * (self.stats["processed_requests"] - 1) + processing_time) / self.stats["processed_requests"]
-        self.stats["avg_similarity_score"] = (self.stats["avg_similarity_score"] * (self.stats["processed_requests"] - 1) + similarity_score) / self.stats["processed_requests"]
-        
-        self.logger.info(f"Processing completed in {processing_time:.3f}s, similarity: {similarity_score:.3f}")
-        
-        return {
-            "original_prompt": prompt,
-            "clean_embedding": clean_embedding,
-            "llm_response": llm_response,
-            "similarity_score": similarity_score,
-            "semantic_preserved": semantic_preserved,
-            "processing_time": processing_time
-        }
-
-    def get_stats(self) -> Dict[str, Any]:
-        """Returns current middleware statistics."""
-        return self.stats
-
-
-class LLMIntegrationExample:
-    """A mock LLM for demonstration purposes."""
-    
-    def __init__(self):
-        self.logger = logging.getLogger(__name__)
-        self.logger.info("Mock LLM initialized")
-
-    def generate(self, embedding: torch.Tensor) -> str:
-        """Generates a safe response based on the cleaned embedding."""
-        self.logger.info(f"Mock LLM received cleaned embedding of shape: {embedding.shape}")
-        return "This is a safe response generated by the mock LLM."
-
-
 class ControlDD:
     """
-    Main interface class for the Text Diffusion Defense library.
+    Main interface class for Text Diffusion Defense.
     
-    This class provides easy access to all functionality of the diffusion defense system.
-    Users can import this as 'import text_diffusion_defense as ControlDD' and use it directly.
+    Pre-trained and ready to use - just initialize and call methods.
     """
     
     def __init__(self, config: Optional[DefenseConfig] = None):
         """
-        Initialize ControlDD with optional configuration.
+        Initialize ControlDD with pre-trained model.
         
         Args:
-            config: Optional DefenseConfig object. If None, uses default config.
+            config: Optional DefenseConfig. Uses defaults if None.
         """
         self.config = config or DefenseConfig()
         self.diffusion_defense = DiffusionDefense(self.config)
         self.embedding_processor = EmbeddingProcessor(self.config.model_name, self.config.cache_dir)
-        
-        # Initialize safety controls
         self.safety_controller = SafetyController()
         self.adaptive_thresholds = AdaptiveSafetyThresholds()
-        
-        # Initialize LLM middleware
-        self.llm_middleware = LLMMiddleware(self.config)
         
         logger.info("ControlDD initialized successfully!")
         logger.info(f"Version: {self.version}")
         logger.info(f"Device: {self.config.device}")
-        logger.info(f"Embedding Dimension: {self.config.embedding_dim}")
     
     @property
     def version(self) -> str:
-        """Get the library version."""
+        """Get library version."""
         return "1.0.0"
     
     @property
@@ -175,127 +53,10 @@ class ControlDD:
             "is_trained": self.diffusion_defense.is_trained
         }
     
-    def train_model(self, adversarial_texts: List[str], clean_texts: List[str]):
-        """Trains the diffusion defense model."""
-        logger.info("Starting training of diffusion defense model...")
-        self.diffusion_defense.train(adversarial_texts, clean_texts)
-        logger.info("Training completed!")
-    
-    def train_with_edge_cases(self, epochs: int = 100):
-        """
-        Advanced training method for handling edge cases and unseen adversarial patterns.
-        Based on research papers for robust diffusion model training.
-        """
-        logger.info("Starting advanced edge-case training...")
-        self.diffusion_defense.train_with_edge_case_handling(epochs)
-        logger.info("Edge-case training completed successfully!")
-    
-    def advanced_pattern_learning_training(self, epochs: int = 200, learning_rate: float = 0.001):
-        """
-        Advanced training that learns adversarial patterns through extensive data and optimal hyperparameters.
-        This method trains the model to detect and mitigate adversarial prompts without explicit rules.
-        """
-        logger.info("🚀 Starting Advanced Pattern Learning Training...")
-        training_results = self.diffusion_defense.advanced_pattern_learning_training(epochs, learning_rate)
-        
-        # Save training results to file
-        self._save_training_results(training_results, epochs, learning_rate)
-        
-        logger.info("✅ Advanced pattern learning training completed successfully!")
-        return training_results
-    
-    def _save_training_results(self, results: Dict[str, Any], epochs: int, learning_rate: float):
-        """Save detailed training results to a separate file."""
-        import json
-        from datetime import datetime
-        
-        # Create comprehensive training report
-        training_report = {
-            "training_info": {
-                "timestamp": datetime.now().isoformat(),
-                "epochs": epochs,
-                "learning_rate": learning_rate,
-                "total_training_time": results.get("training_time", 0),
-                "best_epoch": results.get("best_epoch", 0),
-                "best_loss": results.get("best_loss", 0)
-            },
-            "performance_metrics": {
-                "final_loss": results["losses"][-1] if results["losses"] else 0,
-                "final_semantic_similarity": results["semantic_similarities"][-1] if results["semantic_similarities"] else 0,
-                "loss_improvement": results["losses"][0] - results["losses"][-1] if len(results["losses"]) > 1 else 0,
-                "semantic_improvement": results["semantic_similarities"][-1] - results["semantic_similarities"][0] if len(results["semantic_similarities"]) > 1 else 0
-            },
-            "training_curves": {
-                "epochs": results["epochs"],
-                "losses": results["losses"],
-                "semantic_similarities": results["semantic_similarities"],
-                "learning_rates": results["learning_rates"]
-            },
-            "hyperparameters": {
-                "learning_rate": learning_rate,
-                "weight_decay": 1e-5,
-                "betas": [0.9, 0.999],
-                "eps": 1e-8,
-                "scheduler": "CosineAnnealingWarmRestarts",
-                "gradient_clipping": 1.0
-            }
-        }
-        
-        # Save to file
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"training_results_{timestamp}.json"
-        
-        with open(filename, 'w') as f:
-            json.dump(training_report, f, indent=2)
-        
-        logger.info(f"📊 Training results saved to: {filename}")
-        return filename
-    
-    def clean_embedding(self, text: str) -> torch.Tensor:
-        """
-        Clean a text prompt and return the cleaned embedding.
-        
-        Args:
-            text: The input text to clean
-            
-        Returns:
-            The cleaned embedding tensor
-        """
-        return self.diffusion_defense.clean_prompt(text)
-    
-    def add_noise_to_embedding(self, embedding: torch.Tensor, timestep: int) -> torch.Tensor:
-        """
-        Add noise to an embedding.
-        
-        Args:
-            embedding: The embedding to add noise to
-            timestep: The timestep for noise addition
-            
-        Returns:
-            The noisy embedding
-        """
-        noisy_embedding, _ = self.diffusion_defense.forward_process(embedding, timestep)
-        return noisy_embedding
-    
-    def denoise_embedding(self, noisy_embedding: torch.Tensor) -> torch.Tensor:
-        """
-        Denoise an embedding.
-        
-        Args:
-            noisy_embedding: The noisy embedding to denoise
-            
-        Returns:
-            The cleaned embedding
-        """
-        return self.diffusion_defense.reverse_process(noisy_embedding)
-    
     def analyze_risk(self, text: str) -> float:
         """
-        Analyze the risk level of a text.
+        Analyze risk level of text.
         
-        Args:
-            text: The text to analyze
-            
         Returns:
             Risk score between 0 and 1
         """
@@ -303,153 +64,324 @@ class ControlDD:
             self.embedding_processor.text_to_embedding(text)
         )
     
-    def get_clean_embedding_for_llm(self, prompt: str) -> torch.Tensor:
-        """
-        Process a prompt and return a clean embedding ready for LLM consumption.
-        
-        Args:
-            prompt: The input prompt to process
-            
-        Returns:
-            Clean embedding tensor ready for LLM
-        """
-        logger.info(f"Processing prompt for LLM: '{prompt[:30]}...'")
-        
-        # Analyze risk
-        risk_score = self.analyze_risk(prompt)
-        logger.info(f"Risk analysis for '{prompt[:30]}...': {risk_score:.3f}")
-        
-        # Clean the prompt
-        clean_embedding = self.clean_embedding(prompt)
-        
-        # Detach gradients for LLM consumption
-        clean_embedding = clean_embedding.detach()
-        
-        logger.info(f"Cleaned embedding shape: {clean_embedding.shape}")
-        logger.info("Clean embedding ready for LLM!")
-        
-        return clean_embedding
-    
     def get_clean_text_for_llm(self, prompt: str) -> str:
         """
-        Process a prompt and return clean text ready for LLM consumption.
-        This is the recommended method for better semantic preservation.
+        SIMPLE USAGE: Clean prompt and return safe text for LLM.
         
         Args:
-            prompt: The input prompt to process
+            prompt: User's input prompt
             
         Returns:
             Clean text ready for LLM
         """
-        logger.info(f"Processing prompt to clean text: '{prompt[:30]}...'")
-        
-        # Use advanced text-based cleaning for better semantics
+        logger.info(f"Processing: '{prompt[:30]}...'")
         clean_text = self.diffusion_defense.clean_prompt_to_text(prompt)
-        
-        logger.info(f"Cleaned text: '{clean_text[:50]}...'")
-        logger.info("Clean text ready for LLM!")
-        
+        logger.info(f"Cleaned: '{clean_text[:50]}...'")
         return clean_text
     
+    def get_clean_embedding_for_llm(self, prompt: str) -> torch.Tensor:
+        """
+        Clean prompt and return embedding for LLM.
+        
+        Args:
+            prompt: User's input prompt
+            
+        Returns:
+            Clean embedding tensor
+        """
+        logger.info(f"Processing: '{prompt[:30]}...'")
+        risk_score = self.analyze_risk(prompt)
+        logger.info(f"Risk: {risk_score:.3f}")
+        
+        clean_embedding = self.diffusion_defense.clean_prompt(prompt).detach()
+        logger.info(f"Embedding shape: {clean_embedding.shape}")
+        return clean_embedding
+    
+    def analyze_and_respond(self, prompt: str) -> Dict[str, Any]:
+        """
+        TRANSPARENT WORKFLOW: Analyze prompt and provide feedback to user.
+        
+        Risk Levels:
+        - <0.05: Pass through to LLM
+        - 0.05-0.3: Suggest cleaned version
+        - >0.3: Reject
+        
+        Returns:
+            {
+                'status': 'approved' | 'needs_clarification' | 'rejected',
+                'original_prompt': str,
+                'cleaned_prompt': str | None,
+                'risk_score': float,
+                'risk_categories': List[str],
+                'problematic_words': List[str],
+                'message_to_user': str | None,
+                'send_to_llm': bool,
+                'llm_prompt': str | None
+            }
+        """
+        logger.info(f"Analyzing: '{prompt[:50]}...'")
+        
+        # Analyze safety
+        safety_analysis = self.safety_controller.analyze_text_safety(prompt)
+        risk_score = safety_analysis['overall_risk']
+        risk_categories = list(safety_analysis['categories'].keys())
+        problematic_words = self._identify_problematic_words(prompt, safety_analysis)
+        
+        logger.info(f"Risk: {risk_score:.3f}, Categories: {risk_categories}")
+        
+        result = {
+            'original_prompt': prompt,
+            'risk_score': risk_score,
+            'risk_categories': risk_categories,
+            'problematic_words': problematic_words
+        }
+        
+        # LOW RISK: Pass through
+        if risk_score < 0.05 and not risk_categories:
+            logger.info("✅ Low risk - pass through")
+            result.update({
+                'status': 'approved',
+                'cleaned_prompt': None,
+                'message_to_user': None,
+                'send_to_llm': True,
+                'llm_prompt': prompt
+            })
+            return result
+        
+        # HIGH RISK: Reject
+        if risk_score > 0.3:
+            logger.warning("🚫 High risk - reject")
+            result.update({
+                'status': 'rejected',
+                'cleaned_prompt': None,
+                'message_to_user': "I'm sorry, but I cannot assist with this request as it may involve harmful or inappropriate content. Please feel free to ask me something else!",
+                'send_to_llm': False,
+                'llm_prompt': None
+            })
+            return result
+        
+        # MEDIUM RISK: Suggest cleaned version
+        logger.info("⚠️  Medium risk - suggesting alternative")
+        
+        clean_text = self.diffusion_defense.clean_prompt_to_text(prompt)
+        explanation = self._create_problem_explanation(risk_categories, problematic_words)
+        
+        message_to_user = (
+            f"I noticed your prompt might contain some concerning content ({explanation}). "
+            f"Did you mean: \"{clean_text}\"?\n\n"
+            f"If this is what you intended, I can help with that. Otherwise, please rephrase your question."
+        )
+        
+        logger.info(f"Suggesting: '{clean_text[:50]}...'")
+        
+        result.update({
+            'status': 'needs_clarification',
+            'cleaned_prompt': clean_text,
+            'message_to_user': message_to_user,
+            'send_to_llm': False,
+            'llm_prompt': None
+        })
+        
+        return result
+    
+    def verify_and_proceed(self, user_choice: str, original_prompt: str, cleaned_prompt: str) -> Dict[str, Any]:
+        """
+        VERIFICATION: Handle user's choice with double safety check.
+        
+        - If user chooses 'original' → Block immediately
+        - If user chooses 'cleaned' → Re-verify safety, then approve if clean
+        
+        Returns:
+            {
+                'status': 'approved' | 'rejected' | 'needs_further_clarification',
+                'prompt_to_use': str | None,
+                'message_to_user': str | None,
+                'send_to_llm': bool,
+                'risk_score': float | None
+            }
+        """
+        logger.info(f"Verifying user choice: {user_choice}")
+        
+        result = {
+            'user_choice': user_choice,
+            'original_prompt': original_prompt,
+            'cleaned_prompt': cleaned_prompt
+        }
+        
+        # User insists on bad prompt → BLOCK
+        if user_choice == 'original':
+            logger.warning("🚫 User insisted on bad prompt - BLOCKING")
+            result.update({
+                'status': 'rejected',
+                'prompt_to_use': None,
+                'message_to_user': "I'm sorry, but I cannot assist with the original request as it contains concerning content. Please feel free to ask me something else!",
+                'send_to_llm': False,
+                'risk_score': None
+            })
+            return result
+        
+        # User accepts cleaned → RE-VERIFY
+        if user_choice == 'cleaned':
+            logger.info("Re-verifying cleaned prompt")
+            
+            re_verification = self.analyze_and_respond(cleaned_prompt)
+            logger.info(f"Re-verification: {re_verification['status']}, risk: {re_verification['risk_score']:.3f}")
+            
+            if re_verification['status'] == 'approved':
+                logger.info("✅ Re-verification passed - APPROVED")
+                result.update({
+                    'status': 'approved',
+                    'prompt_to_use': cleaned_prompt,
+                    'message_to_user': None,
+                    'send_to_llm': True,
+                    'risk_score': re_verification['risk_score']
+                })
+                return result
+            
+            if re_verification['status'] == 'needs_clarification':
+                logger.warning("⚠️  Cleaned prompt still has issues")
+                result.update({
+                    'status': 'needs_further_clarification',
+                    'prompt_to_use': None,
+                    'message_to_user': f"I notice the revised prompt still contains some concerning content. {re_verification['message_to_user']}",
+                    'send_to_llm': False,
+                    'risk_score': re_verification['risk_score'],
+                    'further_cleaned_suggestion': re_verification.get('cleaned_prompt')
+                })
+                return result
+            
+            # Re-verification rejected
+            logger.warning("🚫 Re-verification REJECTED")
+            result.update({
+                'status': 'rejected',
+                'prompt_to_use': None,
+                'message_to_user': "I'm sorry, but even the revised prompt contains concerning content. Please try rephrasing in a different way.",
+                'send_to_llm': False,
+                'risk_score': re_verification['risk_score']
+            })
+            return result
+        
+        # Invalid choice
+        logger.error(f"Invalid choice: {user_choice}")
+        result.update({
+            'status': 'error',
+            'prompt_to_use': None,
+            'message_to_user': "Invalid choice. Please select 'original' or 'cleaned'.",
+            'send_to_llm': False,
+            'risk_score': None
+        })
+        return result
+    
+    def _identify_problematic_words(self, text: str, safety_analysis: Dict) -> List[str]:
+        """Identify problematic words that triggered detection."""
+        problematic = []
+        text_lower = text.lower()
+        harmful_patterns = self.safety_controller._load_harmful_patterns()
+        
+        for pattern_info in harmful_patterns:
+            matches = re.findall(pattern_info['pattern'], text_lower, re.IGNORECASE)
+            if matches:
+                for match in matches:
+                    if isinstance(match, tuple):
+                        match = ' '.join(match)
+                    if match and match not in problematic:
+                        problematic.append(match)
+        
+        return problematic
+    
+    def _create_problem_explanation(self, categories: List[str], problematic_words: List[str]) -> str:
+        """Create user-friendly explanation of issues."""
+        if not categories:
+            return "potentially concerning language"
+        
+        category_map = {
+            'violence': 'violent language',
+            'illegal': 'references to illegal activities',
+            'manipulation': 'manipulative language',
+            'hate': 'potentially offensive language',
+            'self-harm': 'concerning content',
+            'terrorism': 'concerning content'
+        }
+        
+        descriptions = [category_map.get(cat, cat) for cat in categories[:2]]
+        return descriptions[0] if len(descriptions) == 1 else ' and '.join(descriptions)
+    
     def save_model(self, path: str = "diffusion_defense_model.pt"):
-        """Save the trained model."""
+        """Save the model (admin use only)."""
         self.diffusion_defense.save_model(path)
         logger.info(f"Model saved to {path}")
     
     def load_model(self, path: str = None):
-        """Load a trained model."""
+        """Load a model."""
         self.diffusion_defense.load_model(path)
-        logger.info(f"Model loaded from {path or 'Hugging Face Hub'}")
+        logger.info(f"Model loaded")
     
     def get_status(self) -> Dict[str, Any]:
-        """Get the current status of the system."""
+        """Get system status."""
         return {
             "version": self.version,
             "device": self.config.device,
             "embedding_dim": self.config.embedding_dim,
-            "is_trained": self.diffusion_defense.is_trained,
-            "model_info": self.model_info
+            "is_trained": self.diffusion_defense.is_trained
         }
-    
-    def demo(self):
-        """Run a simple demo of the system."""
-        logger.info("Running ControlDD demo...")
-        
-        test_prompts = [
-            "How to bake a cake",
-            "How to make explosives",
-            "How to learn programming"
-        ]
-        
-        for prompt in test_prompts:
-            logger.info(f"Testing: '{prompt}'")
-            clean_embedding = self.get_clean_embedding_for_llm(prompt)
-            risk_score = self.analyze_risk(prompt)
-            logger.info(f"Risk score: {risk_score:.3f}")
-            logger.info(f"Clean embedding shape: {clean_embedding.shape}")
-            logger.info("---")
 
 
-# Create a global instance for easy access
+# Global instance for easy access
 control_dd_instance = ControlDD()
 
-# Module-level functions for direct access
-def train_model(adversarial_texts: List[str], clean_texts: List[str]):
-    """Train the diffusion defense model."""
-    return control_dd_instance.train_model(adversarial_texts, clean_texts)
-
-def train_with_edge_cases(epochs: int = 100):
-    """Advanced training method for handling edge cases and unseen adversarial patterns."""
-    return control_dd_instance.train_with_edge_cases(epochs)
-
-def advanced_pattern_learning_training(epochs: int = 200, learning_rate: float = 0.001):
-    """Advanced training that learns adversarial patterns through extensive data and optimal hyperparameters."""
-    return control_dd_instance.advanced_pattern_learning_training(epochs, learning_rate)
-
-def clean_embedding(text: str) -> torch.Tensor:
-    """Clean a text prompt and return the cleaned embedding."""
-    return control_dd_instance.clean_embedding(text)
-
-def add_noise_to_embedding(embedding: torch.Tensor, timestep: int) -> torch.Tensor:
-    """Add noise to an embedding."""
-    return control_dd_instance.add_noise_to_embedding(embedding, timestep)
-
-def denoise_embedding(noisy_embedding: torch.Tensor) -> torch.Tensor:
-    """Denoise an embedding."""
-    return control_dd_instance.denoise_embedding(noisy_embedding)
-
+# Module-level functions
 def analyze_risk(text: str) -> float:
-    """Analyze the risk level of a text."""
+    """Analyze risk level of text."""
     return control_dd_instance.analyze_risk(text)
 
-def get_clean_embedding_for_llm(prompt: str) -> torch.Tensor:
-    """Process a prompt and return a clean embedding ready for LLM consumption."""
-    return control_dd_instance.get_clean_embedding_for_llm(prompt)
-
 def get_clean_text_for_llm(prompt: str) -> str:
-    """Process a prompt and return clean text ready for LLM consumption."""
+    """Clean prompt and return safe text for LLM."""
     return control_dd_instance.get_clean_text_for_llm(prompt)
 
+def get_clean_embedding_for_llm(prompt: str) -> torch.Tensor:
+    """Clean prompt and return safe embedding for LLM."""
+    return control_dd_instance.get_clean_embedding_for_llm(prompt)
+
+def analyze_and_respond(prompt: str) -> Dict[str, Any]:
+    """Analyze prompt with transparent feedback."""
+    return control_dd_instance.analyze_and_respond(prompt)
+
+def verify_and_proceed(user_choice: str, original_prompt: str, cleaned_prompt: str) -> Dict[str, Any]:
+    """Verify user's choice with double safety check."""
+    return control_dd_instance.verify_and_proceed(user_choice, original_prompt, cleaned_prompt)
+
 def save_model(path: str = "diffusion_defense_model.pt"):
-    """Save the trained model."""
+    """Save model."""
     return control_dd_instance.save_model(path)
 
 def load_model(path: str = None):
-    """Load a trained model."""
+    """Load model."""
     return control_dd_instance.load_model(path)
 
 def get_status() -> Dict[str, Any]:
-    """Get the current status of the system."""
+    """Get system status."""
     return control_dd_instance.get_status()
 
-def demo():
-    """Run a simple demo of the system."""
-    return control_dd_instance.demo()
-
 def version() -> str:
-    """Get the library version."""
+    """Get library version."""
     return control_dd_instance.version
 
 def model_info() -> Dict[str, Any]:
-    """Get model information."""
+    """Get model info."""
     return control_dd_instance.model_info
+
+def demo():
+    """Run simple demo."""
+    logger.info("Running demo...")
+    
+    test_prompts = [
+        "How to bake a cake",
+        "How to make explosives",
+        "How to learn programming"
+    ]
+    
+    for prompt in test_prompts:
+        logger.info(f"Testing: '{prompt}'")
+        risk = control_dd_instance.analyze_risk(prompt)
+        logger.info(f"Risk: {risk:.3f}")
+        logger.info("---")

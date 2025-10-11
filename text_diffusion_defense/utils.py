@@ -25,6 +25,7 @@ os.environ['NUMEXPR_NUM_THREADS'] = '2'
 class DefenseConfig:
     """Configuration for the diffusion defense system"""
     embedding_dim: int = 384  # Updated to match sentence-transformers/all-MiniLM-L6-v2
+    hidden_dim: int = 512  # Hidden dimension for denoising model
     num_diffusion_steps: int = 1000
     beta_start: float = 0.0001
     beta_end: float = 0.02
@@ -123,6 +124,10 @@ class NoiseScheduler:
     def get_alpha_bar(self, timestep: int) -> float:
         """Get alpha bar value for given timestep"""
         return self.alpha_bars[timestep].item()
+    
+    def get_alpha_bars(self) -> torch.Tensor:
+        """Get all alpha bar values"""
+        return self.alpha_bars
 
 
 class AdversarialDataset:
@@ -403,6 +408,32 @@ class SafetyController:
             return True, reason
         
         return False, "Content passed safety checks"
+    
+    def calculate_semantic_safety_score(self, original_embedding: torch.Tensor, 
+                                       clean_embedding: torch.Tensor) -> Dict[str, float]:
+        """
+        Calculate semantic safety score between original and cleaned embeddings.
+        
+        Returns:
+            Dictionary with safety_score and is_safe flag
+        """
+        import torch.nn.functional as F
+        
+        # Calculate cosine similarity
+        similarity = F.cosine_similarity(original_embedding, clean_embedding, dim=1).item()
+        
+        # Calculate safety score (lower similarity for high-risk content is better)
+        # Assuming cleaned embeddings should be different from adversarial ones
+        safety_score = 1.0 - abs(similarity)  # Simplified approach
+        
+        # Determine if safe based on threshold
+        is_safe = similarity < 0.9  # High similarity might indicate insufficient cleaning
+        
+        return {
+            'safety_score': safety_score,
+            'is_safe': is_safe,
+            'similarity': similarity
+        }
     
     def enhance_safety_training_data(self, adversarial_texts: List[str], clean_texts: List[str]) -> Tuple[List[str], List[str]]:
         """Enhance training data by filtering and augmenting based on safety analysis."""

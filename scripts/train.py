@@ -1,7 +1,21 @@
 #!/usr/bin/env python3
 """
-Consolidated Training Script for Text Diffusion Defense
-Combines all training functionality into a single, clean file.
+Training Methodology Reference for Text Diffusion Defense
+
+⚠️  NOTE: This script is for REFERENCE ONLY - shows how the model was trained.
+⚠️  The model is PRE-TRAINED and ready to use.
+⚠️  Training API methods have been removed to protect the model.
+⚠️  Users should NOT run this script - just read it to understand methodology.
+
+This documents:
+- Training parameters used (epochs=200, lr=0.001)
+- Hyperparameter optimization approach
+- Dataset and methodology
+- Results achieved
+
+The pre-trained model is included and ready to use via:
+  import text_diffusion_defense as ControlDD
+  defense = ControlDD.ControlDD()  # Pre-trained model loaded automatically
 """
 
 import text_diffusion_defense as ControlDD
@@ -224,4 +238,32 @@ def main():
 
 
 if __name__ == "__main__":
+    print("="*80)
+    print("⚠️  WARNING: This script is for REFERENCE ONLY")
+    print("="*80)
+    print("")
+    print("The model is PRE-TRAINED and ready to use.")
+    print("Training API methods have been removed to protect the model.")
+    print("")
+    print("This script documents the training methodology used:")
+    print("  • Parameters: epochs=200, lr=0.001")
+    print("  • Optimizer: AdamW")
+    print("  • Dataset: aurora-m/adversarial-prompts")
+    print("  • Results: 69.1% semantic preservation")
+    print("")
+    print("To USE the library (no training needed):")
+    print("  import text_diffusion_defense as ControlDD")
+    print("  defense = ControlDD.ControlDD()")
+    print("  clean_text = defense.get_clean_text_for_llm(prompt)")
+    print("")
+    print("="*80)
+    print("")
+    
+    response = input("Do you still want to view the training code? (yes/no): ")
+    if response.lower() != 'yes':
+        print("\n✅ Good choice! Use the pre-trained model instead.")
+        print("See README.md for usage examples.")
+        exit(0)
+    
+    print("\n📚 Showing training methodology (reference only)...\n")
     main()

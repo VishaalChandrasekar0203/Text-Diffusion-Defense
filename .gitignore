@@ -248,18 +248,16 @@ fabric.properties
 
 # Project specific
 defense_system.log
-*.pth
-*.pt
-*.bin
-*.safetensors
+logs/
 cache/
-models/
 checkpoints/
 wandb/
 tensorboard/
-*.json
-!pyproject.toml
-!package.json
+archive/
+
+# Keep important files
+!models/enhanced_diffusion_defense_model.pt
+!results/**/*.json
 
 # Hugging Face cache
 .cache/
