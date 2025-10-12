@@ -31,11 +31,11 @@ Pre-trained LLM safety middleware using embedding-based diffusion processes to d
 
 | System | Safety Improvement | Semantic Preservation | Speed |
 |--------|-------------------|----------------------|-------|
-| **Text Diffusion Defense** | 0.474 | **0.691** 🏆 | 192ms |
+| **Text Diffusion Defense** | 0.453 | **0.693** 🏆 | 60ms |
 | OpenAI Safety | 0.690 | 0.370 | 50ms |
 | Anthropic Safety | 0.710 | 0.290 | 30ms |
 
-**Text Diffusion Defense achieves 2X better semantic preservation while maintaining robust safety.**
+**Text Diffusion Defense achieves 2X better semantic preservation (69.3% vs 29-37%) while maintaining robust safety controls.**
 
 ---
 
