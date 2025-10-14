@@ -7,8 +7,6 @@ import torch
 import numpy as np
 from text_diffusion_defense.model import DiffusionDefense
 from text_diffusion_defense.utils import DefenseConfig, EmbeddingProcessor
-# Enhanced training data functionality moved to model.py
-from text_diffusion_defense.llm_middleware import LLMMiddleware
 import logging
 
 # Set up logging
