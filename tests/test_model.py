@@ -7,9 +7,9 @@ import torch
 import numpy as np
 from unittest.mock import patch, MagicMock
 
-from text_diffusion_defense.model import DiffusionDefense
-from text_diffusion_defense.utils import DefenseConfig, EmbeddingProcessor, NoiseScheduler
-from text_diffusion_defense.control_dd import ControlDD
+from textdiff.model import DiffusionDefense
+from textdiff.utils import DefenseConfig, EmbeddingProcessor, NoiseScheduler
+from textdiff.control_dd import ControlDD
 
 
 class TestDefenseConfig:

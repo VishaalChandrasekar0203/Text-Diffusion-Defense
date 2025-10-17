@@ -14,11 +14,11 @@ This documents:
 - Results achieved
 
 The pre-trained model is included and ready to use via:
-  import text_diffusion_defense as ControlDD
+  import textdiff
   defense = ControlDD.ControlDD()  # Pre-trained model loaded automatically
 """
 
-import text_diffusion_defense as ControlDD
+import textdiff
 import torch
 import logging
 import argparse
@@ -35,7 +35,7 @@ def train_model(args):
     logger.info("🚀 Starting Text Diffusion Defense Model Training")
     
     # Initialize ControlDD with custom config
-    config = ControlDD.DefenseConfig(
+    config = textdiff.DefenseConfig(
         embedding_dim=384,
         num_epochs=args.epochs,
         batch_size=args.batch_size,
@@ -252,7 +252,7 @@ if __name__ == "__main__":
     print("  • Results: 69.1% semantic preservation")
     print("")
     print("To USE the library (no training needed):")
-    print("  import text_diffusion_defense as ControlDD")
+    print("  import textdiff")
     print("  defense = ControlDD.ControlDD()")
     print("  clean_text = defense.get_clean_text_for_llm(prompt)")
     print("")

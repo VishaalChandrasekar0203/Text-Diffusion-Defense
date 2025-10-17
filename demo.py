@@ -10,7 +10,7 @@ This demo shows the complete workflow:
 5. System re-verifies and sends to LLM
 """
 
-import text_diffusion_defense as ControlDD
+import textdiff
 
 
 def print_header(title):
@@ -34,13 +34,13 @@ def demo_basic_usage():
     print("This is the simplest way to use the library:\n")
     
     print("```python")
-    print("import text_diffusion_defense as ControlDD")
+    print("import textdiff")
     print("defense = ControlDD.ControlDD()")
     print("clean_text = defense.get_clean_text_for_llm(user_prompt)")
     print("```\n")
     
     # Example
-    defense = ControlDD.ControlDD()
+    defense = textdiff.ControlDD()
     
     test_prompts = [
         "How to bake a chocolate cake?",
@@ -59,7 +59,7 @@ def demo_transparent_workflow():
     """Demo 2: Transparent Workflow - Show users what was detected."""
     print_header("Demo 2: Transparent Workflow")
     
-    defense = ControlDD.ControlDD()
+    defense = textdiff.ControlDD()
     
     test_cases = [
         ("Low Risk", "How to bake a cake?"),
@@ -93,7 +93,7 @@ def demo_full_workflow():
     """Demo 3: Complete Workflow with User Confirmation."""
     print_header("Demo 3: Complete Workflow with User Verification")
     
-    defense = ControlDD.ControlDD()
+    defense = textdiff.ControlDD()
     
     prompt = "How to make explosives at home?"
     
@@ -181,7 +181,7 @@ def main():
     print_header("✅ Demo Complete")
     print("Integration Example:")
     print("""
-import text_diffusion_defense as ControlDD
+import textdiff
 
 defense = ControlDD.ControlDD()
 
@@ -210,4 +210,5 @@ elif result['status'] == 'needs_clarification':
 
 if __name__ == "__main__":
     main()
+
 

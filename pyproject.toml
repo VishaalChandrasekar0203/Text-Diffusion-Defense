@@ -3,9 +3,9 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "text-diffusion-defense"
+name = "textdiff"
 version = "1.0.0"
-description = "A Python library for embedding-based diffusion defense mechanisms against adversarial text attacks in LLM workflows"
+description = "Easy-to-use LLM safety middleware - embedding-based diffusion defense against adversarial text attacks"
 readme = "README.md"
 requires-python = ">=3.8"
 license = {text = "MIT"}
@@ -74,10 +74,10 @@ text-diffusion-defense = "text_diffusion_defense.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["text_diffusion_defense*"]
+include = ["textdiff*"]
 
 [tool.setuptools.package-data]
-"text_diffusion_defense" = ["*.json", "*.txt", "*.md"]
+"textdiff" = ["*.json", "*.txt", "*.md"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -92,7 +92,7 @@ addopts = [
 ]
 
 [tool.coverage.run]
-source = ["text_diffusion_defense"]
+source = ["textdiff"]
 omit = [
     "*/tests/*",
     "*/test_*",

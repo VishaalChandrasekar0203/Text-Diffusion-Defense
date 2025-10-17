@@ -5,8 +5,8 @@ Comprehensive tests for semantic similarity preservation in diffusion defense.
 import pytest
 import torch
 import numpy as np
-from text_diffusion_defense.model import DiffusionDefense
-from text_diffusion_defense.utils import DefenseConfig, EmbeddingProcessor
+from textdiff.model import DiffusionDefense
+from textdiff.utils import DefenseConfig, EmbeddingProcessor
 import logging
 
 # Set up logging
