@@ -10,26 +10,13 @@ clean_text = defense.get_clean_text_for_llm(user_prompt)
 
 ---
 
-## 🔒 Safety Features
+## 📋 Overview
 
-- **Multi-Category Detection**: 33+ patterns across 9 categories (violence, illegal, manipulation, hate, self-harm, terrorism)
-- **Transparent Analysis**: Users see what was detected with clear explanations
-- **Double Verification**: Re-verifies confirmations to prevent bypass attempts
-- **Adaptive Thresholds**: Context-aware safety (educational, research, safety-critical)
-- **Semantic Preservation**: Maintains 69.3% of meaning vs 29-37% for competitors
-- **Local Processing**: Zero API calls, complete privacy
+TextDiff is a lightweight, pre-trained library that protects Large Language Models from adversarial text attacks using embedding-based diffusion processes. It acts as a safety middleware layer between user input and LLM processing, cleaning potentially harmful prompts while preserving semantic meaning.
 
----
+Unlike commercial solutions that destroy 63-71% of user intent, TextDiff maintains **69.3% semantic preservation** while providing robust safety controls. The system runs entirely locally on CPU, ensuring complete privacy and zero API costs.
 
-## 📊 Performance
-
-| System | Safety | Semantic | Speed |
-|--------|--------|----------|-------|
-| **TextDiff** | 0.453 | **0.693** 🏆 | 60ms |
-| OpenAI | 0.690 | 0.370 | 50ms |
-| Anthropic | 0.710 | 0.290 | 30ms |
-
-**TextDiff delivers 2X better semantic preservation (69.3% vs 29-37%)** while maintaining robust safety.
+**Key Innovation**: First application of diffusion models to LLM safety, achieving superior semantic preservation through embedding-space transformations.
 
 ---
 
@@ -63,11 +50,9 @@ if result['send_to_llm']:
     response = your_llm.generate(result['llm_prompt'])
     
 elif result['status'] == 'needs_clarification':
-    # Show suggestion to user
     show_message(result['message_to_user'])
     user_choice = get_user_choice()  # 'original' or 'cleaned'
     
-    # Verify choice with double-check
     verification = defense.verify_and_proceed(
         user_choice, result['original_prompt'], result['cleaned_prompt']
     )
@@ -82,7 +67,7 @@ else:
 
 ---
 
-## 🤖 Quick Integration Examples
+## 🤖 Quick Integration
 
 ### OpenAI
 ```python
@@ -120,8 +105,34 @@ clean = defense.get_clean_text_for_llm(user_input)
 response = your_llm.generate(clean)  # Works with any LLM!
 ```
 
-**For more integration examples** (Flask, FastAPI, Serverless, Mobile, etc.):  
-📖 **See [research_details/INTEGRATION_GUIDE.md](research_details/INTEGRATION_GUIDE.md)**
+**More examples**: [research_details/INTEGRATION_GUIDE.md](research_details/INTEGRATION_GUIDE.md)
+
+---
+
+## 📊 Performance Benchmarks
+
+| System | Safety Improvement | Semantic Preservation | Speed |
+|--------|-------------------|----------------------|-------|
+| **TextDiff** | 0.453 | **0.693** 🏆 | 60ms |
+| OpenAI Safety | 0.690 | 0.370 | 50ms |
+| Anthropic Safety | 0.710 | 0.290 | 30ms |
+
+**TextDiff delivers 2X better semantic preservation (69.3% vs 29-37%) while maintaining robust safety controls.**
+
+**Training Data**: 17,715 adversarial-clean pairs  
+**Model**: 500K parameters, 384-dim embeddings  
+**Details**: [research_details/DATASET_AND_SCALING.md](research_details/DATASET_AND_SCALING.md)
+
+---
+
+## 🔒 Safety Features
+
+- **Multi-Category Detection**: 33+ patterns across 9 categories (violence, illegal, manipulation, hate, self-harm, terrorism)
+- **Transparent Analysis**: Users see what was detected with clear explanations
+- **Double Verification**: Re-verifies confirmations to prevent bypass attempts
+- **Adaptive Thresholds**: Context-aware safety (educational, research, safety-critical)
+- **Semantic Preservation**: Maintains 69.3% of meaning vs 29-37% for competitors
+- **Local Processing**: Zero API calls, complete privacy
 
 ---
 
@@ -135,20 +146,17 @@ response = your_llm.generate(clean)  # Works with any LLM!
 
 All local on CPU - no external APIs.
 
-**For mathematical details and algorithms:**  
-📖 **See [research_details/TECHNICAL_DETAILS.md](research_details/TECHNICAL_DETAILS.md)**
+**Technical details**: [research_details/TECHNICAL_DETAILS.md](research_details/TECHNICAL_DETAILS.md)
 
 ---
 
 ## 📚 Documentation
 
-| Document | Description |
-|----------|-------------|
-| **README.md** | Quick start and basic usage (you are here) |
-| [INTEGRATION_GUIDE.md](research_details/INTEGRATION_GUIDE.md) | Integration examples for web apps, APIs, CLIs, serverless, mobile, and more |
-| [DATASET_AND_SCALING.md](research_details/DATASET_AND_SCALING.md) | Training data details, scaling forecasts, performance estimates |
-| [TECHNICAL_DETAILS.md](research_details/TECHNICAL_DETAILS.md) | Mathematical foundations, algorithms, model architecture |
-| [FUTURE_ROADMAP.md](research_details/FUTURE_ROADMAP.md) | Scaling plans, compute requirements, cost estimates |
+**Quick References:**
+- **[INTEGRATION_GUIDE.md](research_details/INTEGRATION_GUIDE.md)** - Web apps, APIs, CLIs, serverless, mobile, and more (15+ examples)
+- **[DATASET_AND_SCALING.md](research_details/DATASET_AND_SCALING.md)** - Training data (17,715 pairs), scaling forecasts, performance estimates
+- **[TECHNICAL_DETAILS.md](research_details/TECHNICAL_DETAILS.md)** - Mathematical foundations, algorithms, model architecture
+- **[FUTURE_ROADMAP.md](research_details/FUTURE_ROADMAP.md)** - Scaling plans, compute requirements, cost estimates
 
 ---
 
@@ -165,10 +173,10 @@ textdiff/
 │   └── __init__.py
 ├── models/                    # Pre-trained models
 ├── research_details/          # Comprehensive documentation
-│   ├── INTEGRATION_GUIDE.md  # Integration examples
-│   ├── DATASET_AND_SCALING.md# Data & scaling info
-│   ├── TECHNICAL_DETAILS.md  # Math & algorithms
-│   └── FUTURE_ROADMAP.md     # Scaling plans
+│   ├── INTEGRATION_GUIDE.md
+│   ├── DATASET_AND_SCALING.md
+│   ├── TECHNICAL_DETAILS.md
+│   └── FUTURE_ROADMAP.md
 ├── scripts/                   # Training methodology (reference)
 ├── tests/                     # Test suite
 └── results/                   # Benchmarks
@@ -186,7 +194,7 @@ Efficient, cost-effective alternative to commercial LLM safety solutions. Enable
 
 - **Issues**: [GitHub Issues](https://github.com/VishaalChandrasekar0203/text-diffusion-defense/issues)
 - **Email**: vishaalchandrasekar0203@gmail.com
-- **Documentation**: See [research_details/](research_details/) folder
+- **Documentation**: [research_details/](research_details/) folder
 
 ---
 
