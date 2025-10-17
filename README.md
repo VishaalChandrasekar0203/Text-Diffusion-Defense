@@ -1,15 +1,5 @@
 # TextDiff
 
-**Pre-trained LLM safety middleware with 2X better semantic preservation.**
-
-```python
-import textdiff
-defense = textdiff.ControlDD()
-clean_text = defense.get_clean_text_for_llm(user_prompt)
-```
-
----
-
 ## 📋 Overview
 
 TextDiff is a lightweight, pre-trained library that protects Large Language Models from adversarial text attacks using embedding-based diffusion processes. It acts as a safety middleware layer between user input and LLM processing, cleaning potentially harmful prompts while preserving semantic meaning.
@@ -17,6 +7,12 @@ TextDiff is a lightweight, pre-trained library that protects Large Language Mode
 Unlike commercial solutions that destroy 63-71% of user intent, TextDiff maintains **69.3% semantic preservation** while providing robust safety controls. The system runs entirely locally on CPU, ensuring complete privacy and zero API costs.
 
 **Key Innovation**: First application of diffusion models to LLM safety, achieving superior semantic preservation through embedding-space transformations.
+
+```python
+import textdiff
+defense = textdiff.ControlDD()
+clean_text = defense.get_clean_text_for_llm(user_prompt)
+```
 
 ---
 
@@ -150,7 +146,7 @@ All local on CPU - no external APIs.
 
 ---
 
-## 📚 Documentation
+## Documentation
 
 **Quick References:**
 - **[INTEGRATION_GUIDE.md](research_details/INTEGRATION_GUIDE.md)** - Web apps, APIs, CLIs, serverless, mobile, and more (15+ examples)
@@ -198,7 +194,7 @@ Efficient, cost-effective alternative to commercial LLM safety solutions. Enable
 
 ---
 
-## 📚 Citation
+## Citation
 
 ```bibtex
 @software{textdiff,
@@ -211,7 +207,7 @@ Efficient, cost-effective alternative to commercial LLM safety solutions. Enable
 
 ---
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
 - Built on PyTorch and Transformers
 - sentence-transformers/all-MiniLM-L6-v2 for embeddings
