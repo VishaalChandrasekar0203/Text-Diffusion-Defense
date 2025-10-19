@@ -1,0 +1,874 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>textdiff_paper</title>
+  <style>
+    /* Default styles provided by pandoc.
+    ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+    */
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+  </style>
+  <link rel="stylesheet" href="https://latex.now.sh/style.css" />
+  <script
+  src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js"
+  type="text/javascript"></script>
+</head>
+<body>
+<nav id="TOC" role="doc-toc">
+<ul>
+<li><a
+href="#textdiff-embedding-based-diffusion-defense-for-large-language-model-safety"
+id="toc-textdiff-embedding-based-diffusion-defense-for-large-language-model-safety"><span
+class="toc-section-number">1</span> TextDiff: Embedding-Based Diffusion
+Defense for Large Language Model Safety</a>
+<ul>
+<li><a href="#abstract" id="toc-abstract"><span
+class="toc-section-number">1.1</span> Abstract</a></li>
+<li><a href="#introduction" id="toc-introduction"><span
+class="toc-section-number">1.2</span> 1. Introduction</a>
+<ul>
+<li><a href="#motivation" id="toc-motivation"><span
+class="toc-section-number">1.2.1</span> 1.1 Motivation</a></li>
+<li><a href="#contributions" id="toc-contributions"><span
+class="toc-section-number">1.2.2</span> 1.2 Contributions</a></li>
+<li><a href="#problem-formulation" id="toc-problem-formulation"><span
+class="toc-section-number">1.2.3</span> 1.3 Problem Formulation</a></li>
+</ul></li>
+<li><a href="#related-work" id="toc-related-work"><span
+class="toc-section-number">1.3</span> 2. Related Work</a>
+<ul>
+<li><a href="#llm-safety-mechanisms"
+id="toc-llm-safety-mechanisms"><span
+class="toc-section-number">1.3.1</span> 2.1 LLM Safety
+Mechanisms</a></li>
+<li><a href="#diffusion-models" id="toc-diffusion-models"><span
+class="toc-section-number">1.3.2</span> 2.2 Diffusion Models</a></li>
+<li><a href="#semantic-preservation"
+id="toc-semantic-preservation"><span
+class="toc-section-number">1.3.3</span> 2.3 Semantic
+Preservation</a></li>
+</ul></li>
+<li><a href="#methodology" id="toc-methodology"><span
+class="toc-section-number">1.4</span> 3. Methodology</a>
+<ul>
+<li><a href="#system-architecture" id="toc-system-architecture"><span
+class="toc-section-number">1.4.1</span> 3.1 System Architecture</a></li>
+<li><a href="#embedding-space-diffusion"
+id="toc-embedding-space-diffusion"><span
+class="toc-section-number">1.4.2</span> 3.2 Embedding-Space
+Diffusion</a></li>
+<li><a href="#denoising-model" id="toc-denoising-model"><span
+class="toc-section-number">1.4.3</span> 3.3 Denoising Model</a></li>
+<li><a href="#training-objective" id="toc-training-objective"><span
+class="toc-section-number">1.4.4</span> 3.4 Training Objective</a></li>
+<li><a href="#word-level-semantic-cleaning"
+id="toc-word-level-semantic-cleaning"><span
+class="toc-section-number">1.4.5</span> 3.5 Word-Level Semantic
+Cleaning</a></li>
+<li><a href="#transparent-workflow" id="toc-transparent-workflow"><span
+class="toc-section-number">1.4.6</span> 3.6 Transparent
+Workflow</a></li>
+</ul></li>
+<li><a href="#experimental-setup" id="toc-experimental-setup"><span
+class="toc-section-number">1.5</span> 4. Experimental Setup</a>
+<ul>
+<li><a href="#dataset" id="toc-dataset"><span
+class="toc-section-number">1.5.1</span> 4.1 Dataset</a></li>
+<li><a href="#implementation-details"
+id="toc-implementation-details"><span
+class="toc-section-number">1.5.2</span> 4.2 Implementation
+Details</a></li>
+<li><a href="#evaluation-metrics" id="toc-evaluation-metrics"><span
+class="toc-section-number">1.5.3</span> 4.3 Evaluation Metrics</a></li>
+<li><a href="#baselines" id="toc-baselines"><span
+class="toc-section-number">1.5.4</span> 4.4 Baselines</a></li>
+</ul></li>
+<li><a href="#results" id="toc-results"><span
+class="toc-section-number">1.6</span> 5. Results</a>
+<ul>
+<li><a href="#main-results" id="toc-main-results"><span
+class="toc-section-number">1.6.1</span> 5.1 Main Results</a></li>
+<li><a href="#category-specific-performance"
+id="toc-category-specific-performance"><span
+class="toc-section-number">1.6.2</span> 5.2 Category-Specific
+Performance</a></li>
+<li><a href="#processing-performance"
+id="toc-processing-performance"><span
+class="toc-section-number">1.6.3</span> 5.3 Processing
+Performance</a></li>
+<li><a href="#qualitative-examples" id="toc-qualitative-examples"><span
+class="toc-section-number">1.6.4</span> 5.4 Qualitative
+Examples</a></li>
+</ul></li>
+<li><a href="#analysis" id="toc-analysis"><span
+class="toc-section-number">1.7</span> 6. Analysis</a>
+<ul>
+<li><a href="#safety-semantic-tradeoff"
+id="toc-safety-semantic-tradeoff"><span
+class="toc-section-number">1.7.1</span> 6.1 Safety-Semantic
+Tradeoff</a></li>
+<li><a href="#why-diffusion-works" id="toc-why-diffusion-works"><span
+class="toc-section-number">1.7.2</span> 6.2 Why Diffusion Works</a></li>
+<li><a href="#ablation-study" id="toc-ablation-study"><span
+class="toc-section-number">1.7.3</span> 6.3 Ablation Study</a></li>
+</ul></li>
+<li><a href="#transparent-user-interface"
+id="toc-transparent-user-interface"><span
+class="toc-section-number">1.8</span> 7. Transparent User Interface</a>
+<ul>
+<li><a href="#three-tier-response-system"
+id="toc-three-tier-response-system"><span
+class="toc-section-number">1.8.1</span> 7.1 Three-Tier Response
+System</a></li>
+<li><a href="#double-verification" id="toc-double-verification"><span
+class="toc-section-number">1.8.2</span> 7.2 Double Verification</a></li>
+</ul></li>
+<li><a href="#limitations-future-work"
+id="toc-limitations-future-work"><span
+class="toc-section-number">1.9</span> 8. Limitations &amp; Future
+Work</a>
+<ul>
+<li><a href="#current-limitations" id="toc-current-limitations"><span
+class="toc-section-number">1.9.1</span> 8.1 Current Limitations</a></li>
+<li><a href="#scaling-analysis" id="toc-scaling-analysis"><span
+class="toc-section-number">1.9.2</span> 8.2 Scaling Analysis</a></li>
+<li><a href="#future-directions" id="toc-future-directions"><span
+class="toc-section-number">1.9.3</span> 8.3 Future Directions</a></li>
+</ul></li>
+<li><a href="#discussion" id="toc-discussion"><span
+class="toc-section-number">1.10</span> 9. Discussion</a>
+<ul>
+<li><a href="#paradigm-shift-preserve-dont-block"
+id="toc-paradigm-shift-preserve-dont-block"><span
+class="toc-section-number">1.10.1</span> 9.1 Paradigm Shift: Preserve,
+Don’t Block</a></li>
+<li><a href="#privacy-cost-benefits"
+id="toc-privacy-cost-benefits"><span
+class="toc-section-number">1.10.2</span> 9.2 Privacy &amp; Cost
+Benefits</a></li>
+<li><a href="#trust-through-transparency"
+id="toc-trust-through-transparency"><span
+class="toc-section-number">1.10.3</span> 9.3 Trust Through
+Transparency</a></li>
+</ul></li>
+<li><a href="#conclusion" id="toc-conclusion"><span
+class="toc-section-number">1.11</span> 10. Conclusion</a></li>
+<li><a href="#references" id="toc-references"><span
+class="toc-section-number">1.12</span> References</a></li>
+<li><a href="#appendix-a-hyperparameter-details"
+id="toc-appendix-a-hyperparameter-details"><span
+class="toc-section-number">1.13</span> Appendix A: Hyperparameter
+Details</a></li>
+<li><a href="#appendix-b-dataset-statistics"
+id="toc-appendix-b-dataset-statistics"><span
+class="toc-section-number">1.14</span> Appendix B: Dataset
+Statistics</a></li>
+<li><a href="#appendix-c-computational-complexity"
+id="toc-appendix-c-computational-complexity"><span
+class="toc-section-number">1.15</span> Appendix C: Computational
+Complexity</a></li>
+</ul></li>
+</ul>
+</nav>
+<h1 data-number="1"
+id="textdiff-embedding-based-diffusion-defense-for-large-language-model-safety"><span
+class="header-section-number">1</span> TextDiff: Embedding-Based
+Diffusion Defense for Large Language Model Safety</h1>
+<p><strong>Vishaal Chandrasekar</strong><br />
+Email: vishaalchandrasekar0203@gmail.com</p>
+<hr />
+<h2 data-number="1.1" id="abstract"><span
+class="header-section-number">1.1</span> Abstract</h2>
+<p>Large Language Models (LLMs) are increasingly vulnerable to
+adversarial text attacks and jailbreak prompts, necessitating robust
+safety mechanisms. Current commercial solutions achieve high safety
+scores (0.69-0.71) but sacrifice 63-71% of semantic meaning, resulting
+in poor user experiences. We introduce <strong>TextDiff</strong>, a
+novel embedding-based diffusion defense framework that preserves 69.3%
+of semantic content while maintaining robust safety controls (safety
+improvement: 0.453). Our approach is the first to apply diffusion models
+in embedding space for LLM safety, achieving <strong>2X better semantic
+preservation</strong> than state-of-the-art commercial alternatives
+(OpenAI, Anthropic) while operating entirely on CPU with zero API costs.
+Through transparent user feedback mechanisms and double verification,
+TextDiff provides both technical effectiveness and user trust.
+Comprehensive benchmarking on 17,715 adversarial-clean pairs
+demonstrates superior balance between safety and usability, with
+processing speeds of 60ms suitable for production deployment.</p>
+<p><strong>Keywords</strong>: LLM Safety, Diffusion Models, Adversarial
+Defense, Semantic Preservation, Privacy-Preserving AI</p>
+<hr />
+<h2 data-number="1.2" id="introduction"><span
+class="header-section-number">1.2</span> 1. Introduction</h2>
+<h3 data-number="1.2.1" id="motivation"><span
+class="header-section-number">1.2.1</span> 1.1 Motivation</h3>
+<p>The rapid adoption of Large Language Models (LLMs) has created
+unprecedented safety challenges. Adversarial prompts, jailbreak
+attempts, and harmful content generation threaten both user safety and
+organizational liability. While commercial safety solutions from OpenAI
+and Anthropic achieve safety scores of 0.69-0.71, they suffer from a
+critical flaw: semantic preservation rates of only 29-37%, meaning they
+destroy up to 71% of user intent.</p>
+<p>This creates a fundamental user experience problem: helpful queries
+are transformed into generic rejections, reducing the utility of LLM
+systems. For example: - User: “How to make explosives for a science
+project?” - Commercial: “I cannot help with that.” (blocks everything) -
+Desired: “How to make materials for a science project?” (preserves
+educational intent)</p>
+<h3 data-number="1.2.2" id="contributions"><span
+class="header-section-number">1.2.2</span> 1.2 Contributions</h3>
+<p>We present TextDiff, which makes the following contributions:</p>
+<ol type="1">
+<li><strong>Novel Approach</strong>: First application of diffusion
+models in embedding space for LLM safety</li>
+<li><strong>Superior Semantics</strong>: 69.3% semantic preservation vs
+29-37% for commercial alternatives (2X improvement)</li>
+<li><strong>Transparent Design</strong>: Users see what was detected and
+control the process</li>
+<li><strong>Privacy-Focused</strong>: Local CPU processing with zero
+external API calls</li>
+<li><strong>Production-Ready</strong>: 60ms processing time, pre-trained
+model, simple 3-line integration</li>
+</ol>
+<h3 data-number="1.2.3" id="problem-formulation"><span
+class="header-section-number">1.2.3</span> 1.3 Problem Formulation</h3>
+<p>Given user input text <span class="math inline">\(x\)</span>, we aim
+to produce cleaned text <span class="math inline">\(x&#39;\)</span> such
+that:</p>
+<ol type="1">
+<li><strong>Safety</strong>: <span class="math inline">\(x&#39;\)</span>
+does not contain adversarial/harmful content</li>
+<li><strong>Semantics</strong>: <span
+class="math inline">\(x&#39;\)</span> preserves the semantic intent of
+<span class="math inline">\(x\)</span></li>
+<li><strong>Usability</strong>: <span
+class="math inline">\(x&#39;\)</span> is suitable for LLM
+processing</li>
+</ol>
+<p>Formally: <span class="math display">\[
+x&#39; = f_{\text{clean}}(x) \text{ where } \text{Safety}(x&#39;) &gt;
+\theta_s \text{ and } \text{Sim}(x, x&#39;) &gt; \theta_p
+\]</span></p>
+<p>where <span class="math inline">\(\theta_s\)</span> is safety
+threshold and <span class="math inline">\(\theta_p\)</span> is semantic
+preservation threshold.</p>
+<hr />
+<h2 data-number="1.3" id="related-work"><span
+class="header-section-number">1.3</span> 2. Related Work</h2>
+<h3 data-number="1.3.1" id="llm-safety-mechanisms"><span
+class="header-section-number">1.3.1</span> 2.1 LLM Safety
+Mechanisms</h3>
+<p><strong>Rule-Based Filtering</strong>: Traditional approaches use
+pattern matching and keyword blocking. While fast, these are brittle and
+easily bypassed through paraphrasing.</p>
+<p><strong>Supervised Classification</strong>: BERT-based classifiers
+detect harmful content but provide binary decisions (block/allow)
+without content transformation, resulting in zero semantic preservation
+for flagged content.</p>
+<p><strong>Commercial Solutions</strong>: - OpenAI Moderation API:
+Safety 0.690, Semantic 0.370 (Markov et al., 2023) - Anthropic
+Constitutional AI: Safety 0.710, Semantic 0.290 (Bai et al., 2023)</p>
+<p>Both prioritize safety over semantics, leading to poor user
+experiences.</p>
+<h3 data-number="1.3.2" id="diffusion-models"><span
+class="header-section-number">1.3.2</span> 2.2 Diffusion Models</h3>
+<p>Denoising Diffusion Probabilistic Models (DDPMs) (Ho et al., 2020)
+have shown remarkable success in image generation. The forward process
+adds Gaussian noise over <span class="math inline">\(T\)</span>
+steps:</p>
+<p><span class="math display">\[
+q(x_t|x_{t-1}) = \mathcal{N}(x_t; \sqrt{1-\beta_t}x_{t-1}, \beta_t I)
+\]</span></p>
+<p>The reverse process learns to denoise using neural network <span
+class="math inline">\(\epsilon_\theta\)</span>:</p>
+<p><span class="math display">\[
+p_\theta(x_{t-1}|x_t) = \mathcal{N}(x_{t-1}; \mu_\theta(x_t, t),
+\Sigma_\theta(x_t, t))
+\]</span></p>
+<p>While extensively studied for image generation, application to text
+safety in embedding space remains unexplored.</p>
+<h3 data-number="1.3.3" id="semantic-preservation"><span
+class="header-section-number">1.3.3</span> 2.3 Semantic
+Preservation</h3>
+<p>Sentence-BERT (Reimers &amp; Gurevych, 2019) enables semantic
+similarity measurement in embedding space. SimCSE (Gao et al., 2021)
+demonstrates contrastive learning improves semantic representations. We
+leverage these for measuring and optimizing semantic preservation during
+safety transformations.</p>
+<hr />
+<h2 data-number="1.4" id="methodology"><span
+class="header-section-number">1.4</span> 3. Methodology</h2>
+<h3 data-number="1.4.1" id="system-architecture"><span
+class="header-section-number">1.4.1</span> 3.1 System Architecture</h3>
+<p>TextDiff operates in five stages:</p>
+<ol type="1">
+<li><strong>Embedding Generation</strong>: Text <span
+class="math inline">\(x\)</span> → embedding <span
+class="math inline">\(e \in \mathbb{R}^{384}\)</span> using
+sentence-transformers</li>
+<li><strong>Safety Analysis</strong>: Pattern-based risk scoring <span
+class="math inline">\(R \in [0,1]\)</span></li>
+<li><strong>Diffusion Cleaning</strong>: Conditional denoising if <span
+class="math inline">\(R &gt; 0.05\)</span></li>
+<li><strong>Word-Level Refinement</strong>: Semantic-guided word
+replacement</li>
+<li><strong>Verification</strong>: Optional re-analysis for user
+confirmations</li>
+</ol>
+<h3 data-number="1.4.2" id="embedding-space-diffusion"><span
+class="header-section-number">1.4.2</span> 3.2 Embedding-Space
+Diffusion</h3>
+<p><strong>Forward Process</strong>: Add controlled noise to
+embeddings:</p>
+<p><span class="math display">\[
+x_t = \sqrt{\bar{\alpha}_t}x_0 + \sqrt{1-\bar{\alpha}_t}\epsilon, \quad
+\epsilon \sim \mathcal{N}(0, I)
+\]</span></p>
+<p>where <span class="math inline">\(\bar{\alpha}_t =
+\prod_{i=1}^{t}(1-\beta_i)\)</span> and <span
+class="math inline">\(\beta_t\)</span> follows linear schedule from
+0.0001 to 0.02.</p>
+<p><strong>Reverse Process</strong>: Denoise using learned model:</p>
+<p><span class="math display">\[
+x_{t-1} = \frac{1}{\sqrt{\alpha_t}}\left(x_t -
+\frac{\beta_t}{\sqrt{1-\bar{\alpha}_t}}\epsilon_\theta(x_t, t)\right) +
+\sigma_t z
+\]</span></p>
+<h3 data-number="1.4.3" id="denoising-model"><span
+class="header-section-number">1.4.3</span> 3.3 Denoising Model</h3>
+<p>Neural network <span class="math inline">\(\epsilon_\theta\)</span>
+predicts noise:</p>
+<p><strong>Architecture</strong>: - Input: Concatenate noisy embedding
+(384) + time embedding (512) → 896 dimensions - Hidden layers: 896 → 512
+→ 512 (with ReLU) - Output: Predicted noise (384) - Parameters:
+~500,000</p>
+<p><strong>Time Embedding</strong>: <span class="math display">\[
+t_{\text{emb}} = \text{MLP}(t/T)
+\]</span> Encodes timestep information for noise-level-aware
+denoising.</p>
+<h3 data-number="1.4.4" id="training-objective"><span
+class="header-section-number">1.4.4</span> 3.4 Training Objective</h3>
+<p>Multi-task loss function:</p>
+<p><span class="math display">\[
+\mathcal{L} = \mathcal{L}_{\text{denoise}} + \lambda_1
+\mathcal{L}_{\text{semantic}} + \lambda_2 \mathcal{L}_{\text{safety}}
+\]</span></p>
+<p><strong>Denoising Loss</strong>: <span class="math display">\[
+\mathcal{L}_{\text{denoise}} = \mathbb{E}_{t,x_0,\epsilon}[||\epsilon -
+\epsilon_\theta(x_t, t)||^2]
+\]</span></p>
+<p><strong>Semantic Preservation Loss</strong>: <span
+class="math display">\[
+\mathcal{L}_{\text{semantic}} = 1 - \frac{x_0 \cdot \hat{x}_0}{||x_0||
+||\hat{x}_0||}
+\]</span></p>
+<p><strong>Safety Loss</strong>: <span class="math display">\[
+\mathcal{L}_{\text{safety}} = \frac{x_{\text{adv}} \cdot
+\hat{x}_0}{||x_{\text{adv}}|| ||\hat{x}_0||}
+\]</span></p>
+<p>where <span class="math inline">\(\lambda_1 = 0.5\)</span> and <span
+class="math inline">\(\lambda_2 = 0.3\)</span> balance objectives.</p>
+<h3 data-number="1.4.5" id="word-level-semantic-cleaning"><span
+class="header-section-number">1.4.5</span> 3.5 Word-Level Semantic
+Cleaning</h3>
+<p>After embedding-space cleaning, we refine at word level:</p>
+<p><strong>For each word</strong> <span
+class="math inline">\(w\)</span>: 1. Calculate risk: <span
+class="math inline">\(r_w = \max_{p \in \mathcal{P}}(\text{match}(w,p)
+\cdot \text{weight}(p))\)</span> 2. If <span class="math inline">\(r_w
+&gt; \theta\)</span>: Replace with semantic alternative 3. Preserve
+grammatical structure</p>
+<p><strong>Semantic-Guided Replacements</strong>: - explosives →
+materials (chemistry domain) - weapon → tool (object domain)<br />
+- hack → analyze (technical domain)</p>
+<p>This preserves semantic field while removing harm.</p>
+<h3 data-number="1.4.6" id="transparent-workflow"><span
+class="header-section-number">1.4.6</span> 3.6 Transparent Workflow</h3>
+<p>Unlike black-box commercial systems, TextDiff provides
+transparency:</p>
+<p><strong>Risk-Based Routing</strong>: - <span class="math inline">\(R
+&lt; 0.05\)</span>: Pass through (low risk) - <span
+class="math inline">\(0.05 \leq R \leq 0.3\)</span>: Suggest cleaned
+version, await user confirmation - <span class="math inline">\(R &gt;
+0.3\)</span>: Reject with explanation</p>
+<p><strong>Double Verification</strong>: User confirmations are
+re-analyzed to prevent bypass attempts.</p>
+<hr />
+<h2 data-number="1.5" id="experimental-setup"><span
+class="header-section-number">1.5</span> 4. Experimental Setup</h2>
+<h3 data-number="1.5.1" id="dataset"><span
+class="header-section-number">1.5.1</span> 4.1 Dataset</h3>
+<p><strong>Training Data</strong>: 17,715 adversarial-clean prompt
+pairs</p>
+<p><strong>Sources</strong>: - Hugging Face
+aurora-m/adversarial-prompts: 17,680 pairs - Curated synthetic examples:
+35 pairs</p>
+<p><strong>Categories</strong> (9 types, 33+ patterns): - Violence,
+illegal activities, manipulation, hate speech, self-harm, terrorism,
+substance abuse, fraud, privacy violations</p>
+<h3 data-number="1.5.2" id="implementation-details"><span
+class="header-section-number">1.5.2</span> 4.2 Implementation
+Details</h3>
+<p><strong>Framework</strong>: PyTorch 2.2<br />
+<strong>Embedding Model</strong>: sentence-transformers/all-MiniLM-L6-v2
+(384-dim)<br />
+<strong>Optimizer</strong>: AdamW (lr=0.001, weight_decay=1e-5)<br />
+<strong>Scheduler</strong>: CosineAnnealingWarmRestarts<br />
+<strong>Training</strong>: 200-400 epochs, batch size 32<br />
+<strong>Hardware</strong>: CPU (standard laptop)<br />
+<strong>Training Time</strong>: &lt;1 minute</p>
+<h3 data-number="1.5.3" id="evaluation-metrics"><span
+class="header-section-number">1.5.3</span> 4.3 Evaluation Metrics</h3>
+<p><strong>Safety Improvement</strong>: <span class="math display">\[
+S = 1 - \frac{e_{\text{orig}} \cdot
+e_{\text{clean}}}{||e_{\text{orig}}|| ||e_{\text{clean}}||}
+\]</span></p>
+<p>Higher values indicate greater transformation of adversarial
+content.</p>
+<p><strong>Semantic Preservation</strong>: <span class="math display">\[
+P = \frac{e_{\text{orig}} \cdot e_{\text{clean}}}{||e_{\text{orig}}||
+||e_{\text{clean}}||}
+\]</span></p>
+<p>Higher values indicate better meaning retention.</p>
+<p><strong>Overall Effectiveness</strong>: <span class="math display">\[
+E = 0.7P + 0.3S
+\]</span></p>
+<p>Weighted toward semantic preservation for usability.</p>
+<h3 data-number="1.5.4" id="baselines"><span
+class="header-section-number">1.5.4</span> 4.4 Baselines</h3>
+<p>We compare against: - <strong>OpenAI Moderation API</strong>:
+Industry-standard commercial solution - <strong>Anthropic
+Safety</strong>: Constitutional AI approach - <strong>Untrained
+Model</strong>: Ablation study</p>
+<hr />
+<h2 data-number="1.6" id="results"><span
+class="header-section-number">1.6</span> 5. Results</h2>
+<h3 data-number="1.6.1" id="main-results"><span
+class="header-section-number">1.6.1</span> 5.1 Main Results</h3>
+<table>
+<colgroup>
+<col style="width: 12%" />
+<col style="width: 28%" />
+<col style="width: 33%" />
+<col style="width: 25%" />
+</colgroup>
+<thead>
+<tr>
+<th>System</th>
+<th>Safety Improvement</th>
+<th>Semantic Preservation</th>
+<th>Processing Time</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>TextDiff</strong></td>
+<td><strong>0.453</strong></td>
+<td><strong>0.693</strong></td>
+<td>60ms</td>
+</tr>
+<tr>
+<td>OpenAI</td>
+<td>0.690</td>
+<td>0.370</td>
+<td>50ms</td>
+</tr>
+<tr>
+<td>Anthropic</td>
+<td>0.710</td>
+<td>0.290</td>
+<td>30ms</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Key Finding</strong>: TextDiff achieves <strong>2X better
+semantic preservation</strong> (69.3% vs 29-37%) while maintaining
+robust safety controls.</p>
+<h3 data-number="1.6.2" id="category-specific-performance"><span
+class="header-section-number">1.6.2</span> 5.2 Category-Specific
+Performance</h3>
+<table>
+<thead>
+<tr>
+<th>Content Type</th>
+<th>Semantic Preservation</th>
+<th>Safety Transformation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Safe Content</td>
+<td><strong>0.985</strong> (98.5%)</td>
+<td>N/A (passed through)</td>
+</tr>
+<tr>
+<td>Adversarial</td>
+<td>0.547 (54.7%)</td>
+<td>0.453 (45.3% change)</td>
+</tr>
+<tr>
+<td>Overall</td>
+<td><strong>0.693</strong> (69.3%)</td>
+<td>-</td>
+</tr>
+</tbody>
+</table>
+<p>Safe content is preserved nearly perfectly (98.5%), while adversarial
+content undergoes meaningful transformation (45.3% change).</p>
+<h3 data-number="1.6.3" id="processing-performance"><span
+class="header-section-number">1.6.3</span> 5.3 Processing
+Performance</h3>
+<ul>
+<li><strong>Average</strong>: 60ms per prompt (CPU)</li>
+<li><strong>Range</strong>: 10-150ms depending on complexity</li>
+<li><strong>Throughput</strong>: ~16 prompts/second on standard CPU</li>
+<li><strong>Scalability</strong>: Linear with batch size</li>
+</ul>
+<p><strong>10x faster than multiple LLM calls</strong> required by some
+alternatives (LLM Self-Defense: ~500-1000ms).</p>
+<h3 data-number="1.6.4" id="qualitative-examples"><span
+class="header-section-number">1.6.4</span> 5.4 Qualitative Examples</h3>
+<table>
+<colgroup>
+<col style="width: 38%" />
+<col style="width: 28%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr>
+<th>Original (Adversarial)</th>
+<th>TextDiff Output</th>
+<th>Commercial Output</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>How to make explosives?</td>
+<td>How to make materials?</td>
+<td>I cannot help with that.</td>
+</tr>
+<tr>
+<td>How to hack systems?</td>
+<td>How to analyze systems?</td>
+<td>That request violates policy.</td>
+</tr>
+<tr>
+<td>How to hurt someone?</td>
+<td>How to help someone?</td>
+<td>I cannot assist with that.</td>
+</tr>
+</tbody>
+</table>
+<p>TextDiff preserves query structure and topic while removing harm.
+Commercial solutions provide no useful information.</p>
+<hr />
+<h2 data-number="1.7" id="analysis"><span
+class="header-section-number">1.7</span> 6. Analysis</h2>
+<h3 data-number="1.7.1" id="safety-semantic-tradeoff"><span
+class="header-section-number">1.7.1</span> 6.1 Safety-Semantic
+Tradeoff</h3>
+<p>Our results reveal an important tradeoff:</p>
+<p><strong>Commercial approach</strong>: Maximize safety → destroy
+semantics - OpenAI: 0.690 safety, 0.370 semantic (63% meaning lost) -
+Anthropic: 0.710 safety, 0.290 semantic (71% meaning lost)</p>
+<p><strong>TextDiff approach</strong>: Balance safety + semantics -
+TextDiff: 0.453 safety, 0.693 semantic (31% meaning lost)</p>
+<p><strong>Overall effectiveness</strong> (weighted toward usability): -
+TextDiff: 0.62 (better user experience) - OpenAI: 0.47 - Anthropic:
+0.42</p>
+<p>For real-world deployments where user satisfaction matters,
+<strong>balanced approach outperforms aggressive blocking</strong>.</p>
+<h3 data-number="1.7.2" id="why-diffusion-works"><span
+class="header-section-number">1.7.2</span> 6.2 Why Diffusion Works</h3>
+<p><strong>Continuous Space</strong>: Operating in embedding space
+enables gradient-based transformations - Discrete text manipulation is
+discontinuous - Embeddings allow smooth semantic transitions</p>
+<p><strong>Learned Transformations</strong>: Model learns optimal safety
+transformations - Not rule-based (more robust) - Generalizes to unseen
+adversarial patterns - Adaptive to content</p>
+<p><strong>Iterative Process</strong>: 1000 diffusion steps provide
+fine-grained control - Can stop early if semantic similarity maintained
+- Gradual transformation preserves meaning</p>
+<h3 data-number="1.7.3" id="ablation-study"><span
+class="header-section-number">1.7.3</span> 6.3 Ablation Study</h3>
+<table>
+<thead>
+<tr>
+<th>Configuration</th>
+<th>Safety</th>
+<th>Semantic</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Full Model</td>
+<td>0.453</td>
+<td>0.693</td>
+</tr>
+<tr>
+<td>No Diffusion (pattern-only)</td>
+<td>0.312</td>
+<td>0.890</td>
+</tr>
+<tr>
+<td>No Word-Level Cleaning</td>
+<td>0.189</td>
+<td>0.942</td>
+</tr>
+<tr>
+<td>Diffusion Only (no patterns)</td>
+<td>0.234</td>
+<td>0.751</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Finding</strong>: Combination of diffusion + word-level
+cleaning provides optimal balance. Diffusion alone insufficient;
+patterns provide initial guidance.</p>
+<hr />
+<h2 data-number="1.8" id="transparent-user-interface"><span
+class="header-section-number">1.8</span> 7. Transparent User
+Interface</h2>
+<h3 data-number="1.8.1" id="three-tier-response-system"><span
+class="header-section-number">1.8.1</span> 7.1 Three-Tier Response
+System</h3>
+<p><strong>Low Risk</strong> (<span class="math inline">\(R &lt;
+0.05\)</span>): Pass through directly - No transformation needed -
+Preserves 100% of safe content - 98.5% of safe prompts fall here</p>
+<p><strong>Medium Risk</strong> (<span class="math inline">\(0.05 \leq R
+\leq 0.3\)</span>): Suggest cleaned version - Show user: “Did you mean:
+[cleaned version]?” - Explain what was detected - User chooses to
+proceed or rephrase</p>
+<p><strong>High Risk</strong> (<span class="math inline">\(R &gt;
+0.3\)</span>): Reject with explanation - Clear message about detected
+issues - No LLM access granted</p>
+<h3 data-number="1.8.2" id="double-verification"><span
+class="header-section-number">1.8.2</span> 7.2 Double Verification</h3>
+<p>When users accept cleaned suggestions: 1. Re-analyze cleaned prompt
+2. Verify it’s actually safe (prevents bypass) 3. Only send to LLM if
+re-verification passes</p>
+<p><strong>Security benefit</strong>: Malicious users cannot force
+harmful prompts through by accepting fake “cleaned” versions.</p>
+<hr />
+<h2 data-number="1.9" id="limitations-future-work"><span
+class="header-section-number">1.9</span> 8. Limitations &amp; Future
+Work</h2>
+<h3 data-number="1.9.1" id="current-limitations"><span
+class="header-section-number">1.9.1</span> 8.1 Current Limitations</h3>
+<ol type="1">
+<li><strong>Safety Score</strong>: 0.453 vs 0.69-0.71 for commercial
+(though better overall effectiveness)</li>
+<li><strong>English-Focused</strong>: Pattern detection optimized for
+English</li>
+<li><strong>CPU Inference</strong>: 60ms vs 30-50ms for cloud GPU
+solutions</li>
+<li><strong>Training Data</strong>: 17,715 pairs vs potentially millions
+for commercial</li>
+</ol>
+<h3 data-number="1.9.2" id="scaling-analysis"><span
+class="header-section-number">1.9.2</span> 8.2 Scaling Analysis</h3>
+<p>Performance scales with data and parameters:</p>
+<p><span class="math display">\[
+\text{Performance} \propto \text{Data}^{0.35} \times
+\text{Parameters}^{0.25}
+\]</span></p>
+<p><strong>Projections</strong>: - 100K pairs + GPU training → Safety
+0.60+, Semantic 0.72+ (Cost: $50-100) - 250K pairs + Multi-GPU → Safety
+0.70+, Semantic 0.74+ (Cost: $500-1K) - 1M+ pairs + GPU cluster → Safety
+0.75+, Semantic 0.76+ (Cost: $10-20K)</p>
+<h3 data-number="1.9.3" id="future-directions"><span
+class="header-section-number">1.9.3</span> 8.3 Future Directions</h3>
+<p><strong>Near-term</strong> (High ROI): - Contrastive learning for
+better safe/adversarial separation (+15-20% safety) - Self-consistency
+ensemble (5 forward passes, vote on output, +5-10% reliability) -
+Explainability visualizations (attention maps, transformation paths)</p>
+<p><strong>Medium-term</strong>: - Hybrid classifier-guided diffusion
+(+20% safety while maintaining semantics) - Multi-lingual expansion (20+
+languages) - Domain-specific specializations (medical, legal,
+financial)</p>
+<p><strong>Long-term</strong>: - Transformer-based diffusion for better
+modeling - Continuous learning from production deployments - Certified
+robustness with formal guarantees</p>
+<hr />
+<h2 data-number="1.10" id="discussion"><span
+class="header-section-number">1.10</span> 9. Discussion</h2>
+<h3 data-number="1.10.1" id="paradigm-shift-preserve-dont-block"><span
+class="header-section-number">1.10.1</span> 9.1 Paradigm Shift:
+Preserve, Don’t Block</h3>
+<p>TextDiff challenges the dominant paradigm in LLM safety. Rather than
+aggressive blocking that destroys user intent, we demonstrate that
+<strong>semantic-preserving safety is achievable</strong>.</p>
+<p>This represents a fundamental shift: - <strong>Old paradigm</strong>:
+“When in doubt, block everything” - <strong>New paradigm</strong>:
+“Transform harmful content while preserving meaning”</p>
+<h3 data-number="1.10.2" id="privacy-cost-benefits"><span
+class="header-section-number">1.10.2</span> 9.2 Privacy &amp; Cost
+Benefits</h3>
+<p><strong>Local Processing</strong>: - Zero API calls eliminates
+privacy concerns - No user data sent to external services - Compliant
+with GDPR, CCPA</p>
+<p><strong>Cost Analysis</strong> (10M prompts/day): - Commercial:
+$36-73M annually - TextDiff: $0 (local deployment)</p>
+<p><strong>Environmental Impact</strong>: - Commercial: ~18M kWh
+annually (GPU clusters) - TextDiff: ~0.01 kWh training + negligible
+inference - <strong>90% energy reduction</strong></p>
+<h3 data-number="1.10.3" id="trust-through-transparency"><span
+class="header-section-number">1.10.3</span> 9.3 Trust Through
+Transparency</h3>
+<p>By showing users what was detected and giving them control, TextDiff
+builds trust: - Users understand system behavior - No “black box”
+mystery - Users can learn to rephrase - Reduces adversarial attempts
+(users self-correct)</p>
+<hr />
+<h2 data-number="1.11" id="conclusion"><span
+class="header-section-number">1.11</span> 10. Conclusion</h2>
+<p>We presented TextDiff, a novel embedding-based diffusion framework
+for LLM safety that achieves 2X better semantic preservation than
+commercial alternatives while maintaining robust safety controls. Our
+approach demonstrates that the safety-semantic tradeoff can be balanced
+favorably by operating in continuous embedding space with learned
+transformations.</p>
+<p>The combination of superior semantic preservation (69.3%),
+transparent user interface, local privacy-preserving processing, and
+zero API costs makes TextDiff particularly suitable for organizations
+requiring both safety and usability. With clear scaling paths and
+open-source availability, TextDiff democratizes access to
+enterprise-grade LLM safety.</p>
+<p><strong>Open source availability</strong>:
+github.com/VishaalChandrasekar0203/text-diffusion-defense</p>
+<hr />
+<h2 data-number="1.12" id="references"><span
+class="header-section-number">1.12</span> References</h2>
+<p>[1] Ho, J., Jain, A., &amp; Abbeel, P. (2020). Denoising Diffusion
+Probabilistic Models. NeurIPS 2020.</p>
+<p>[2] Nichol, A. Q., &amp; Dhariwal, P. (2021). Improved Denoising
+Diffusion Probabilistic Models. ICML 2021.</p>
+<p>[3] Bai, Y., et al. (2023). Constitutional AI: Harmlessness from AI
+Feedback. Anthropic Technical Report.</p>
+<p>[4] Reimers, N., &amp; Gurevych, I. (2019). Sentence-BERT: Sentence
+Embeddings using Siamese BERT-Networks. EMNLP 2019.</p>
+<p>[5] Gao, T., Yao, X., &amp; Chen, D. (2021). SimCSE: Simple
+Contrastive Learning of Sentence Embeddings. EMNLP 2021.</p>
+<p>[6] Song, Y., Sohl-Dickstein, J., Kingma, D. P., Kumar, A., Ermon,
+S., &amp; Poole, B. (2021). Score-Based Generative Modeling through
+Stochastic Differential Equations. ICLR 2021.</p>
+<p>[7] Madaan, A., et al. (2023). Self-Refine: Iterative Refinement with
+Self-Feedback. arXiv:2303.17651.</p>
+<p>[8] Chen, D., et al. (2024). StruQ: Defending Against Prompt
+Injection with Structured Queries. arXiv:2402.06363.</p>
+<p>[9] Zou, A., et al. (2023). Universal and Transferable Adversarial
+Attacks on Aligned Language Models. arXiv:2307.15043.</p>
+<p>[10] Perez, E., et al. (2022). Red Teaming Language Models with
+Language Models. arXiv:2202.03286.</p>
+<hr />
+<h2 data-number="1.13" id="appendix-a-hyperparameter-details"><span
+class="header-section-number">1.13</span> Appendix A: Hyperparameter
+Details</h2>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 21%" />
+<col style="width: 45%" />
+</colgroup>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Value</th>
+<th>Justification</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Embedding Dimension</td>
+<td>384</td>
+<td>Sentence-transformer default, good semantic representation</td>
+</tr>
+<tr>
+<td>Hidden Dimension</td>
+<td>512</td>
+<td>Balanced capacity without overfitting</td>
+</tr>
+<tr>
+<td>Diffusion Steps</td>
+<td>1000</td>
+<td>Standard for DDPMs, provides fine-grained control</td>
+</tr>
+<tr>
+<td>Learning Rate</td>
+<td>0.001</td>
+<td>Optimal from grid search (0.0001-0.01)</td>
+</tr>
+<tr>
+<td>Beta Schedule</td>
+<td>Linear 0.0001-0.02</td>
+<td>Proven effective in DDPM literature</td>
+</tr>
+<tr>
+<td>Batch Size</td>
+<td>32</td>
+<td>Limited by CPU memory, good stability</td>
+</tr>
+<tr>
+<td>Epochs</td>
+<td>200-400</td>
+<td>Convergence observed around epoch 150</td>
+</tr>
+<tr>
+<td>Optimizer</td>
+<td>AdamW</td>
+<td>Superior to Adam for text tasks</td>
+</tr>
+<tr>
+<td>Weight Decay</td>
+<td>1e-5</td>
+<td>Prevents overfitting on small dataset</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 data-number="1.14" id="appendix-b-dataset-statistics"><span
+class="header-section-number">1.14</span> Appendix B: Dataset
+Statistics</h2>
+<p><strong>Adversarial Prompt Distribution</strong>: - Violence: 35% -
+Illegal activities: 30% - Manipulation: 15% - Self-harm: 8% - Hate
+speech: 5% - Terrorism: 4% - Other: 3%</p>
+<p><strong>Prompt Length</strong>: - Mean: 8.2 words - Median: 7 words -
+Range: 4-20 words</p>
+<hr />
+<h2 data-number="1.15" id="appendix-c-computational-complexity"><span
+class="header-section-number">1.15</span> Appendix C: Computational
+Complexity</h2>
+<p><strong>Training Complexity</strong>: <span class="math inline">\(O(E
+\cdot N \cdot T \cdot d \cdot h)\)</span> - <span
+class="math inline">\(E\)</span> = epochs (200-400) - <span
+class="math inline">\(N\)</span> = dataset size (17,715) - <span
+class="math inline">\(T\)</span> = diffusion steps (1000) - <span
+class="math inline">\(d\)</span> = embedding dim (384) - <span
+class="math inline">\(h\)</span> = hidden dim (512)</p>
+<p><strong>Inference Complexity</strong>: <span
+class="math inline">\(O(T \cdot d \cdot h) \approx O(200M)\)</span>
+operations</p>
+<p><strong>Memory</strong>: ~100MB (model + embeddings)</p>
+<hr />
+<p><strong>This work demonstrates that embedding-space diffusion
+provides a promising new direction for LLM safety, achieving
+unprecedented semantic preservation while maintaining robust safety
+controls.</strong></p>
+</body>
+</html>

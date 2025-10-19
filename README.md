@@ -134,6 +134,8 @@ response = your_llm.generate(clean)  # Works with any LLM!
 
 ## 🎓 How It Works
 
+![TextDiff Architecture](assets/TextDiff%20Arch.jpg)
+
 1. **Input**: User prompt → 384-dim embedding
 2. **Analysis**: Pattern detection (9 categories)
 3. **Diffusion**: 1000-step cleaning process
