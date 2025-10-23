@@ -254,18 +254,27 @@ class DenoisingModel(nn.Module):
             nn.Linear(hidden_dim, embedding_dim)
         )
     
-    def forward(self, noisy_embeddings: torch.Tensor, timestep: int) -> torch.Tensor:
+    def forward(self, noisy_embeddings: torch.Tensor, timestep: Union[int, torch.Tensor]) -> torch.Tensor:
         """Predict noise in noisy embeddings"""
-        # Normalize timestep
-        t = torch.tensor([timestep], dtype=torch.float32) / 1000.0
-        
-        # Get time embedding - ensure it matches batch size
         batch_size = noisy_embeddings.shape[0]
-        time_emb = self.time_embedding(t.unsqueeze(0))
-        time_emb = time_emb.expand(batch_size, -1)  # Expand to match batch size
+        
+        # Handle both single timestep and batched timesteps
+        if isinstance(timestep, int):
+            # Single timestep for entire batch
+            t = torch.tensor([timestep], dtype=torch.float32) / 1000.0
+            time_emb = self.time_embedding(t.unsqueeze(0))
+            time_emb = time_emb.expand(batch_size, -1)
+        else:
+            # Batched timesteps (different for each sample)
+            t = timestep.float().unsqueeze(1) / 1000.0  # [batch_size, 1]
+            time_emb = self.time_embedding(t)  # [batch_size, 512]
+        
+        # Flatten embeddings if needed
+        if noisy_embeddings.dim() == 3:
+            noisy_embeddings = noisy_embeddings.squeeze(1)  # [batch_size, 384]
         
         # Combine embeddings and time
-        combined = torch.cat([noisy_embeddings, time_emb], dim=-1)
+        combined = torch.cat([noisy_embeddings, time_emb], dim=-1)  # [batch_size, 896]
         
         # Predict noise
         predicted_noise = self.denoising_net(combined)

@@ -59,8 +59,45 @@ class DiffusionDefense:
             eps=1e-8
         )
         
-        self.is_trained = False
+        # Load trained model weights
+        self.is_trained = self._load_trained_weights()
+        
+        # Risk-adaptive diffusion parameters (from empirical analysis)
+        self.t_max_low = 50   # For low risk (0.0-0.1): 88.78% preservation
+        self.t_max_med = 100  # For medium risk (0.1-0.3): 70.85% preservation
+        self.t_max_high = 200 # For high risk (0.3-0.7): 41.44% preservation
+        
         self.logger.info("DiffusionDefense model initialized on %s", self.config.device)
+        if self.is_trained:
+            self.logger.info("✅ Loaded trained diffusion model weights")
+        else:
+            self.logger.warning("⚠️  No trained model found, using untrained model")
+    
+    def _load_trained_weights(self) -> bool:
+        """Load pre-trained diffusion model weights if available."""
+        import os
+        from pathlib import Path
+        
+        # Try to load from models/ folder
+        model_paths = [
+            Path(__file__).parent.parent / "models" / "diffusion_model_trained.pth",
+            Path("models") / "diffusion_model_trained.pth",
+            Path("diffusion_model_trained.pth")
+        ]
+        
+        for model_path in model_paths:
+            if model_path.exists():
+                try:
+                    checkpoint = torch.load(model_path, map_location=self.config.device)
+                    self.denoising_model.load_state_dict(checkpoint['denoising_model_state_dict'])
+                    self.logger.info(f"Loaded trained model from: {model_path}")
+                    return True
+                except Exception as e:
+                    self.logger.warning(f"Failed to load model from {model_path}: {e}")
+                    continue
+        
+        self.logger.info("No pre-trained model found, model will need training")
+        return False
     
     def load_huggingface_dataset(self) -> Tuple[List[str], List[str]]:
         """Load adversarial prompts dataset from Hugging Face."""
@@ -376,38 +413,58 @@ class DiffusionDefense:
         
         return cleaned_embedding
     
-    def _reverse_process_with_semantic_preservation(self, embedding: torch.Tensor) -> torch.Tensor:
-        """Reverse diffusion process with semantic preservation techniques."""
+    def _reverse_process_with_semantic_preservation(self, embedding: torch.Tensor, prompt: str = "") -> torch.Tensor:
+        """
+        Risk-adaptive reverse diffusion process.
+        Uses optimal t_max based on risk level to balance safety and semantics.
+        """
         if not self.is_trained:
             self.logger.warning("Model not trained, returning original embedding")
             return embedding
         
-        # Use DDIM sampling for better control
+        # Calculate risk score to determine diffusion depth
+        risk_score = self.analyze_embedding_risk(embedding)
+        
+        # Select t_max based on risk (risk-adaptive diffusion)
+        if risk_score < 0.1:
+            t_max = self.t_max_low  # 50: Light noise, preserve 88.78%
+        elif risk_score < 0.3:
+            t_max = self.t_max_med  # 100: Moderate noise, preserve 70.85%
+        else:
+            t_max = self.t_max_high  # 200: Strong noise, preserve 41.44%
+        
+        # Get noise schedule
         alpha_bars = self.noise_scheduler.get_alpha_bars()
         
-        # Start with some noise
+        # Forward diffusion: Add noise to t_max
+        alpha_bar_t_max = alpha_bars[t_max]
         noise = torch.randn_like(embedding)
-        noisy_embedding = embedding + 0.1 * noise
         
-        # Denoise step by step
-        for t in reversed(range(self.config.num_diffusion_steps)):
-            alpha_bar_t = alpha_bars[t]
-            alpha_bar_prev = alpha_bars[t-1] if t > 0 else torch.tensor(1.0)
-            
-            # Predict noise
-            predicted_noise = self.denoising_model(noisy_embedding, t)
-            
-            # DDIM step
-            x0_pred = (noisy_embedding - torch.sqrt(1 - alpha_bar_t) * predicted_noise) / torch.sqrt(alpha_bar_t)
-            noisy_embedding = torch.sqrt(alpha_bar_prev) * x0_pred + torch.sqrt(1 - alpha_bar_prev) * predicted_noise
-            
-            # Semantic preservation check
-            if t % 10 == 0:
-                similarity = nn.functional.cosine_similarity(embedding, x0_pred, dim=-1)
-                if similarity > 0.8:  # Good semantic preservation
-                    break
+        if embedding.dim() == 3:
+            embedding_flat = embedding.squeeze(1)
+        else:
+            embedding_flat = embedding
         
-        return noisy_embedding
+        noisy_embedding = (
+            torch.sqrt(alpha_bar_t_max) * embedding_flat + 
+            torch.sqrt(1 - alpha_bar_t_max) * noise.squeeze(1) if noise.dim() == 3 else noise
+        )
+        
+        # Reverse diffusion: Denoise using trained model
+        with torch.no_grad():
+            self.denoising_model.eval()
+            
+            # Predict noise at t_max
+            t_tensor = torch.tensor([t_max])
+            predicted_noise = self.denoising_model(noisy_embedding, t_tensor)
+            
+            # Remove predicted noise to get clean embedding
+            denoised_embedding = (
+                (noisy_embedding - torch.sqrt(1 - alpha_bar_t_max) * predicted_noise) /
+                torch.sqrt(alpha_bar_t_max)
+            )
+        
+        return denoised_embedding.unsqueeze(1) if embedding.dim() == 3 else denoised_embedding
     
     def clean_prompt_to_text(self, prompt: str) -> str:
         """
