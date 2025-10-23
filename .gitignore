@@ -264,3 +264,9 @@ archive/
 transformers_cache/
 sentence_transformers_cache/
 
+
+# PPT presentation materials (local only)
+ppt_docs/
+
+# Testing embeddings folder (local only)
+testing_embeddings/

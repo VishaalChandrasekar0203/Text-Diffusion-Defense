@@ -38,6 +38,7 @@ dependencies = [
     "scikit-learn>=1.0.0",
     "datasets>=2.0.0",
     "huggingface-hub>=0.16.0",
+    "rapidfuzz>=3.0.0",
 ]
 
 [project.optional-dependencies]

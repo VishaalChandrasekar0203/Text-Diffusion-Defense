@@ -818,3 +818,4 @@ TextDiff works with:
 
 **TextDiff is designed to integrate seamlessly into any Python project with minimal code changes.**
 
+

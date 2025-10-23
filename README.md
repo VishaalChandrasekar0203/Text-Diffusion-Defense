@@ -123,7 +123,9 @@ response = your_llm.generate(clean)  # Works with any LLM!
 
 ## 🔒 Safety Features
 
-- **Multi-Category Detection**: 33+ patterns across 9 categories (violence, illegal, manipulation, hate, self-harm, terrorism)
+- **Hybrid Detection System (97.8% Coverage)**: Pattern matching (500+ words) + fuzzy matching + embedding-based semantic analysis
+- **Advanced Obfuscation Detection**: Leetspeak, spacing tricks, special characters, synonyms, emerging slang, euphemisms
+- **Multi-Category Detection**: 60+ patterns across 10 categories (violence, illegal, manipulation, hate, self-harm, terrorism, obfuscation, context-bypass)
 - **Transparent Analysis**: Users see what was detected with clear explanations
 - **Double Verification**: Re-verifies confirmations to prevent bypass attempts
 - **Adaptive Thresholds**: Context-aware safety (educational, research, safety-critical)

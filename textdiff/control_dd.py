@@ -8,7 +8,8 @@ import logging
 import re
 from typing import List, Dict, Any, Optional
 from .model import DiffusionDefense
-from .utils import DefenseConfig, EmbeddingProcessor, setup_logging, SafetyController, AdaptiveSafetyThresholds
+from .utils import DefenseConfig, EmbeddingProcessor, setup_logging, AdaptiveSafetyThresholds
+from .enhanced_safety import EnhancedSafetyController
 
 # Set up logging
 logger = setup_logging(DefenseConfig())
@@ -31,7 +32,7 @@ class ControlDD:
         self.config = config or DefenseConfig()
         self.diffusion_defense = DiffusionDefense(self.config)
         self.embedding_processor = EmbeddingProcessor(self.config.model_name, self.config.cache_dir)
-        self.safety_controller = SafetyController()
+        self.safety_controller = EnhancedSafetyController(self.embedding_processor)
         self.adaptive_thresholds = AdaptiveSafetyThresholds()
         
         logger.info("ControlDD initialized successfully!")
@@ -276,7 +277,7 @@ class ControlDD:
         """Identify problematic words that triggered detection."""
         problematic = []
         text_lower = text.lower()
-        harmful_patterns = self.safety_controller._load_harmful_patterns()
+        harmful_patterns = self.safety_controller.harmful_patterns
         
         for pattern_info in harmful_patterns:
             matches = re.findall(pattern_info['pattern'], text_lower, re.IGNORECASE)
