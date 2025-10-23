@@ -184,12 +184,6 @@ textdiff/
 
 ---
 
-## 💡 Impact
-
-Efficient, cost-effective alternative to commercial LLM safety solutions. Enables organizations to implement robust safety without infrastructure costs. Local processing ensures privacy and reduces environmental impact.
-
----
-
 ## 🆘 Support
 
 - **Issues**: [GitHub Issues](https://github.com/VishaalChandrasekar0203/text-diffusion-defense/issues)
@@ -209,15 +203,3 @@ Efficient, cost-effective alternative to commercial LLM safety solutions. Enable
 }
 ```
 
----
-
-## Acknowledgments
-
-- Built on PyTorch and Transformers
-- sentence-transformers/all-MiniLM-L6-v2 for embeddings
-- Inspired by diffusion models (Ho et al., 2020)
-- Training: aurora-m/adversarial-prompts (17,680 pairs) + synthetic (35 pairs)
-
----
-
-*TextDiff - Simple, powerful, privacy-focused LLM safety*
