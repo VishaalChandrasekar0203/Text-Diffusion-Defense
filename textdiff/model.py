@@ -494,156 +494,51 @@ class DiffusionDefense:
     
     def clean_prompt_to_text(self, prompt: str) -> str:
         """
-        Advanced prompt cleaning that returns clean text.
-        Uses semantic-guided diffusion cleaning.
+        Clean prompt using diffusion process and return text.
+        
+        WORKFLOW:
+        1. Tokenize → Embeddings
+        2. Calculate Risk Score
+        3. If risk is bad:
+           - Forward Diffusion (add noise to embeddings)
+           - Reverse Diffusion (trained model removes noise)
+        4. Convert clean embedding back to text
+        5. Ready for LLM
         """
         if not prompt or not prompt.strip():
             return "I cannot process empty prompts."
         
         start_time = time.time()
         
-        # Use semantic-guided diffusion cleaning
-        cleaned_text = self._semantic_guided_diffusion_cleaning(prompt)
+        # Step 1: Convert prompt to embedding
+        self.logger.info(f"Step 1: Converting prompt to embedding: '{prompt[:50]}...'")
+        original_embedding = self.embedding_processor.text_to_embedding(prompt)
+        
+        # Step 2: Calculate risk score
+        risk_score = self.analyze_embedding_risk(original_embedding)
+        self.logger.info(f"Step 2: Risk score calculated: {risk_score:.4f}")
+        
+        # Step 3: Apply diffusion process (forward + reverse)
+        self.logger.info(f"Step 3: Applying diffusion process...")
+        cleaned_embedding = self._reverse_process_with_semantic_preservation(
+            original_embedding, prompt
+        )
+        
+        # Calculate L2 distance to verify transformation
+        l2_distance = torch.norm(original_embedding - cleaned_embedding).item()
+        self.logger.info(f"Step 4: L2 distance (transformation): {l2_distance:.4f}")
+        
+        # Step 4: Convert cleaned embedding back to text
+        self.logger.info(f"Step 5: Converting cleaned embedding back to text...")
+        cleaned_text = self.embedding_processor.embedding_to_text(cleaned_embedding)
         
         processing_time = time.time() - start_time
-        self.logger.info(f"Advanced semantic cleaning completed in {processing_time:.3f}s for: '{prompt[:30]}...'")
+        self.logger.info(f"✅ Diffusion cleaning completed in {processing_time:.3f}s")
+        self.logger.info(f"Original: '{prompt[:50]}...'")
+        self.logger.info(f"Cleaned:  '{cleaned_text[:50]}...'")
         
         return cleaned_text
     
-    def _semantic_guided_diffusion_cleaning(self, prompt: str) -> str:
-        """Semantic-guided diffusion cleaning with adaptive weights."""
-        if not prompt or not prompt.strip():
-            return "I cannot process empty prompts."
-        
-        # Enhanced safety analysis
-        safety_analysis = self.safety_controller.analyze_text_safety(prompt)
-        risk_score = safety_analysis['overall_risk']
-        
-        # Check if content should be blocked
-        should_block, block_reason = self.safety_controller.should_block_content(prompt)
-        if should_block:
-            self.logger.warning(f"Blocking high-risk content: {block_reason}")
-            return "I cannot provide assistance with that request, but I'm happy to help with other topics."
-        
-        # Semantic-guided processing based on risk level
-        if risk_score < 0.05:
-            return self._semantic_preserving_cleaning(prompt, semantic_weight=0.05)
-        elif risk_score < 0.3:
-            return self._semantic_preserving_cleaning(prompt, semantic_weight=0.2)
-        else:
-            return self._semantic_preserving_cleaning(prompt, semantic_weight=0.5)
-    
-    def _semantic_preserving_cleaning(self, text: str, semantic_weight: float = 0.5) -> str:
-        """Semantic-preserving cleaning with adaptive noise scheduling."""
-        words = text.split()
-        cleaned_words = []
-        
-        for word in words:
-            word_risk = self._calculate_word_semantic_risk(word)
-            
-            if word_risk > semantic_weight:
-                cleaned_word = self._semantic_guided_word_replacement(word, word_risk)
-                cleaned_words.append(cleaned_word)
-            elif word_risk > semantic_weight * 0.5:
-                cleaned_word = self._gentle_semantic_sanitization(word)
-                cleaned_words.append(cleaned_word)
-            else:
-                cleaned_words.append(word)
-        
-        cleaned_text = ' '.join(cleaned_words)
-        return self._ensure_semantic_coherence(cleaned_text, original_text=text)
-    
-    def _calculate_word_semantic_risk(self, word: str) -> float:
-        """Calculate semantic risk for individual words."""
-        high_risk_patterns = [
-            r'\b(kill|murder|hurt|harm|stab|shoot|beat|attack|destroy|bomb|explode|torture|suffer)\b',
-            r'\b(weapon|weapons|gun|guns|knife|knives|sword|swords|bomb|explosive|explosives|poison|toxic|malware|virus|viruses|trojan|trojans)\b',
-            r'\b(illegal|crime|steal|rob|hack|crack|exploit|fraud|scam|phishing|ransomware)\b',
-            r'\b(manipulate|trick|deceive|brainwash|gaslight|break|breaking)\b',
-            r'\b(drug|substance|overdose|addiction|addicted)\b'
-        ]
-        
-        word_lower = word.lower().strip('.,!?;:"')
-        
-        for pattern in high_risk_patterns:
-            if re.search(pattern, word_lower, re.IGNORECASE):
-                return 0.9
-        
-        return 0.1
-    
-    def _semantic_guided_word_replacement(self, word: str, risk_score: float) -> str:
-        """Replace high-risk words with semantically appropriate alternatives."""
-        word_lower = word.lower().strip('.,!?;:"')
-        
-        replacements = {
-            'hurt': 'help', 'harm': 'assist', 'kill': 'address', 'murder': 'resolve',
-            'stab': 'approach', 'shoot': 'target', 'beat': 'overcome', 'attack': 'engage',
-            'destroy': 'modify', 'bomb': 'device', 'explode': 'activate',
-            'explosive': 'material', 'explosives': 'materials', 'weapon': 'tool', 'weapons': 'tools',
-            'gun': 'equipment', 'guns': 'equipment', 'knife': 'instrument', 'knives': 'instruments',
-            'sword': 'implement', 'swords': 'implements', 'poison': 'substance', 'toxic': 'hazardous',
-            'illegal': 'unconventional', 'crime': 'activity', 'crimes': 'activities',
-            'steal': 'obtain', 'stealing': 'obtaining', 'rob': 'acquire', 'robbing': 'acquiring',
-            'hack': 'analyze', 'hacking': 'analyzing', 'crack': 'access', 'cracking': 'accessing',
-            'exploit': 'utilize', 'exploiting': 'utilizing', 'manipulate': 'influence',
-            'manipulating': 'influencing', 'trick': 'guide', 'tricking': 'guiding',
-            'deceive': 'inform', 'deceiving': 'informing', 'brainwash': 'educate',
-            'brainwashing': 'educating', 'drug': 'substance', 'drugs': 'substances',
-            'overdose': 'excessive use', 'malware': 'software', 'virus': 'program',
-            'viruses': 'programs', 'trojan': 'application', 'trojans': 'applications',
-            'ransomware': 'security software', 'phishing': 'communication',
-            'scam': 'activity', 'scams': 'activities', 'fraud': 'practice', 'frauds': 'practices',
-            'torture': 'address', 'torturing': 'addressing', 'suffer': 'experience',
-            'suffering': 'experiencing', 'break': 'access', 'breaking': 'accessing',
-            'addicted': 'interested', 'addiction': 'interest'
-        }
-        
-        if word_lower in replacements:
-            replacement = replacements[word_lower]
-            if word.isupper():
-                return replacement.upper()
-            elif word.istitle():
-                return replacement.title()
-            else:
-                return replacement
-        
-        return "item" if risk_score > 0.8 else word
-    
-    def _gentle_semantic_sanitization(self, word: str) -> str:
-        """Gentle sanitization that preserves more semantic meaning."""
-        sanitized = re.sub(r'(ing|ed|er|est)$', '', word.lower())
-        
-        gentle_replacements = {
-            'hurt': 'affect', 'harm': 'impact', 'dangerous': 'challenging',
-            'risky': 'adventurous', 'violent': 'intense', 'aggressive': 'assertive'
-        }
-        
-        if sanitized in gentle_replacements:
-            replacement = gentle_replacements[sanitized]
-            if word.isupper():
-                return replacement.upper()
-            elif word.istitle():
-                return replacement.title()
-            else:
-                return replacement
-        
-        return word
-    
-    def _ensure_semantic_coherence(self, cleaned_text: str, original_text: str) -> str:
-        """Ensure semantic coherence between original and cleaned text."""
-        if not cleaned_text.strip():
-            return "I'd be happy to help you with your request."
-        
-        if not cleaned_text.endswith(('.', '!', '?')):
-            cleaned_text += '.'
-        
-        meaningful_words = [word for word in cleaned_text.split()
-                          if len(word) > 2 and not word.lower() in ['the', 'and', 'or', 'but']]
-        
-        if len(meaningful_words) < 2:
-            return "I'd be happy to help you with your request."
-        
-        return cleaned_text
     
     def save_model(self, filepath: str = "diffusion_defense_model.pt"):
         """Save the trained model."""
