@@ -270,3 +270,21 @@ ppt_docs/
 
 # Testing embeddings folder (local only)
 testing_embeddings/
+allycat/
+
+# Build artifacts
+*.egg-info/
+text_diffusion_defense.egg-info/
+textdiff.egg-info/
+
+# Local cache and logs
+cache/
+logs/
+*.log
+defense_system.log
+
+# Archive folder (old files)
+archive/
+
+# PPT and local testing
+ppt_docs/
