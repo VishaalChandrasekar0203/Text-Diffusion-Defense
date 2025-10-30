@@ -1,4 +1,4 @@
-# TextDiff
+# TextDiffuse
 
 ## 📋 Overview
 
